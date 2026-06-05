@@ -1,0 +1,16 @@
+[project]
+name = "regulation-manager"
+version = "1.0.0"
+description = "制度汇编管理系统"
+requires-python = ">=3.10"
+dependencies = [
+    "PyQt6>=6.5",
+    "SQLAlchemy>=2.0",
+    "PyMuPDF>=1.23",
+    "python-docx>=1.0",
+    "jieba>=0.42",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

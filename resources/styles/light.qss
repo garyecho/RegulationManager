@@ -1,0 +1,723 @@
+/* ============================================================
+   制度汇编管理系统 — 亮色主题 QSS
+   风格：现代企业级，蓝色主调，简洁专业
+   ============================================================ */
+
+/* ── 全局字体定义 ──────────────────────────────────────────── */
+* {
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei",
+                 "DengXian", "Arial Unicode MS", "Noto Sans CJK SC",
+                 "Segoe UI", sans-serif;
+    font-size: 13px;
+    font-style: normal;
+    font-variant: normal;
+    color: #1a1a2e;
+}
+
+QMainWindow {
+    background-color: #f0f2f5;
+}
+
+QWidget {
+    background-color: transparent;
+}
+
+/* ── 菜单栏 ──────────────────────────────────────────────── */
+QMenuBar {
+    background-color: #1a1a2e;
+    color: #e0e0e0;
+    padding: 2px 8px;
+    border: none;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QMenuBar::item {
+    padding: 6px 12px;
+    border-radius: 4px;
+}
+
+QMenuBar::item:selected {
+    background-color: #2d2d4e;
+    color: #ffffff;
+}
+
+QMenu {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 4px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QMenu::item {
+    padding: 8px 32px 8px 16px;
+    border-radius: 4px;
+}
+
+QMenu::item:selected {
+    background-color: #e8f0fe;
+    color: #1a1a2e;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: #e8e8e8;
+    margin: 4px 8px;
+}
+
+/* ── 工具栏 ──────────────────────────────────────────────── */
+QToolBar {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e8e8e8;
+    padding: 6px 12px;
+    spacing: 8px;
+}
+
+QToolBar QToolButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 6px 14px;
+    color: #333;
+    font-size: 13px;
+}
+
+QToolBar QToolButton:hover {
+    background-color: #f0f4ff;
+    border-color: #c0d4ff;
+}
+
+QToolBar QToolButton:pressed {
+    background-color: #dce8ff;
+}
+
+/* ── 侧边栏 ──────────────────────────────────────────────── */
+#Sidebar {
+    background-color: #1a1a2e;
+    border-right: 1px solid #12122a;
+}
+
+#SidebarTitle {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 20px 16px 8px 16px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+#SidebarSubtitle {
+    color: #8888aa;
+    font-size: 11px;
+    padding: 0px 16px 16px 16px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+/* 侧边栏按钮 */
+#Sidebar QPushButton {
+    background-color: transparent;
+    color: #b0b0cc;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 13px;
+    min-height: 20px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+#Sidebar QPushButton:hover {
+    background-color: #2a2a4e;
+    color: #ffffff;
+}
+
+#Sidebar QPushButton:checked,
+#Sidebar QPushButton[active="true"] {
+    background-color: #2d5aa0;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+/* 分类树 */
+#Sidebar QTreeWidget,
+#Sidebar QTreeView {
+    background-color: transparent;
+    color: #c0c0dd;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+#Sidebar QTreeWidget::item,
+#Sidebar QTreeView::item {
+    padding: 9px 8px;
+    border-radius: 6px;
+    margin: 1px 4px;
+}
+
+#Sidebar QTreeWidget::item:hover,
+#Sidebar QTreeView::item:hover {
+    background-color: #2a2a4e;
+    color: #ffffff;
+}
+
+#Sidebar QTreeWidget::item:selected,
+#Sidebar QTreeView::item:selected {
+    background-color: #2d5aa0;
+    color: #ffffff;
+}
+
+#Sidebar QTreeWidget::branch {
+    background-color: transparent;
+}
+
+/* 侧边栏分割线 */
+#SidebarSeparator {
+    background-color: #2a2a4e;
+    max-height: 1px;
+}
+
+/* ── 搜索栏 ──────────────────────────────────────────────── */
+#SearchBar {
+    background-color: #ffffff;
+    border: 2px solid #e0e0e0;
+    border-radius: 22px;
+    padding: 8px 16px;
+    font-size: 14px;
+    color: #1a1a2e;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+#SearchBar:focus {
+    border-color: #2d5aa0;
+}
+
+#SearchBar::placeholder {
+    color: #aaaaaa;
+}
+
+/* ── 文档列表（表格） ────────────────────────────────────── */
+QTableWidget, QTableView {
+    background-color: #ffffff;
+    alternate-background-color: #f8f9fb;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    gridline-color: #f0f0f0;
+    selection-background-color: #e8f0fe;
+    selection-color: #1a1a2e;
+    font-size: 13px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QTableWidget::item, QTableView::item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+QTableWidget::item:selected, QTableView::item:selected {
+    background-color: #e8f0fe;
+    color: #1a1a2e;
+}
+
+QHeaderView::section {
+    background-color: #f5f6fa;
+    color: #555;
+    font-weight: bold;
+    font-size: 12px;
+    border: none;
+    border-bottom: 2px solid #e0e0e0;
+    border-right: 1px solid #eaeaea;
+    padding: 10px 12px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QHeaderView::section:hover {
+    background-color: #e8ecf4;
+}
+
+/* ── 卡片视图 ────────────────────────────────────────────── */
+#DocumentCard {
+    background-color: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+#DocumentCard:hover {
+    border-color: #2d5aa0;
+    background-color: #f8faff;
+}
+
+#CardTitle {
+    font-size: 14px;
+    font-weight: bold;
+    color: #1a1a2e;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+#CardMeta {
+    font-size: 12px;
+    color: #888;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+/* ── 按钮 ────────────────────────────────────────────────── */
+QPushButton {
+    background-color: #2d5aa0;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: bold;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QPushButton:hover {
+    background-color: #3a6db5;
+}
+
+QPushButton:pressed {
+    background-color: #1e4080;
+}
+
+QPushButton:disabled {
+    background-color: #cccccc;
+    color: #888888;
+}
+
+/* 次要按钮 */
+QPushButton[secondary="true"] {
+    background-color: #f0f2f5;
+    color: #333;
+    border: 1px solid #d0d0d0;
+}
+
+QPushButton[secondary="true"]:hover {
+    background-color: #e0e2e5;
+}
+
+/* 危险按钮 */
+QPushButton[danger="true"] {
+    background-color: #dc3545;
+}
+
+QPushButton[danger="true"]:hover {
+    background-color: #c82333;
+}
+
+/* ── 输入框 ──────────────────────────────────────────────── */
+QLineEdit, QTextEdit, QPlainTextEdit {
+    background-color: #ffffff;
+    border: 1.5px solid #d0d0d0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #1a1a2e;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
+    border-color: #2d5aa0;
+}
+
+/* ── 下拉框 ──────────────────────────────────────────────── */
+QComboBox {
+    background-color: #ffffff;
+    border: 1.5px solid #d0d0d0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    min-width: 120px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QComboBox:hover {
+    border-color: #2d5aa0;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 24px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    selection-background-color: #e8f0fe;
+    outline: none;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+/* ── 滚动条 ──────────────────────────────────────────────── */
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #c0c0c0;
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #a0a0a0;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical,
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {
+    height: 0;
+    background: transparent;
+}
+
+QScrollBar:horizontal {
+    background: transparent;
+    height: 8px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #c0c0c0;
+    border-radius: 4px;
+    min-width: 30px;
+}
+
+/* ── 选项卡 ──────────────────────────────────────────────── */
+QTabWidget::pane {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #ffffff;
+    top: -1px;
+}
+
+QTabBar::tab {
+    background-color: #f0f2f5;
+    color: #666;
+    border: 1px solid #e0e0e0;
+    border-bottom: none;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 8px 20px;
+    margin-right: 2px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QTabBar::tab:selected {
+    background-color: #ffffff;
+    color: #2d5aa0;
+    font-weight: bold;
+    border-bottom: 2px solid #2d5aa0;
+}
+
+/* ── 状态栏 ──────────────────────────────────────────────── */
+QStatusBar {
+    background-color: #ffffff;
+    border-top: 1px solid #e8e8e8;
+    color: #666;
+    font-size: 12px;
+    padding: 4px 12px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+/* ── 分割线 ──────────────────────────────────────────────── */
+QSplitter::handle {
+    background-color: #e0e0e0;
+}
+
+QSplitter::handle:horizontal {
+    width: 2px;
+}
+
+QSplitter::handle:vertical {
+    height: 2px;
+}
+
+/* ── 对话框 ──────────────────────────────────────────────── */
+QDialog {
+    background-color: #f8f9fb;
+}
+
+QGroupBox {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-top: 16px;
+    padding-top: 24px;
+    padding-bottom: 8px;
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 2px 8px;
+    margin-left: 8px;
+    color: #2d5aa0;
+    font-size: 14px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+/* ── 标签 ────────────────────────────────────────────────── */
+QLabel {
+    color: #333;
+    background-color: transparent;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+#TagLabel {
+    background-color: #e8f0fe;
+    color: #2d5aa0;
+    border-radius: 10px;
+    padding: 3px 10px;
+    font-size: 11px;
+}
+
+/* ── 表单标签（新增/编辑对话框专用）──────────────────────── */
+#FormLabel {
+    color: #444;
+    font-size: 13px;
+    font-weight: 600;
+    padding-right: 8px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+#FormLabelRequired {
+    color: #d32f2f;
+    font-size: 13px;
+    font-weight: 600;
+    padding-right: 8px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+/* ── 进度条 ──────────────────────────────────────────────── */
+QProgressBar {
+    background-color: #e8e8e8;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 11px;
+    color: #333;
+    max-height: 12px;
+}
+
+QProgressBar::chunk {
+    background-color: #2d5aa0;
+    border-radius: 6px;
+}
+
+/* ── 提示框 ──────────────────────────────────────────────── */
+QToolTip {
+    background-color: #1a1a2e;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+/* ── 日期选择 ────────────────────────────────────────────── */
+QDateEdit {
+    background-color: #ffffff;
+    border: 1.5px solid #d0d0d0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QDateEdit:focus {
+    border-color: #2d5aa0;
+}
+
+QDateEdit::drop-down {
+    border: none;
+    width: 28px;
+    subcontrol-position: top right;
+    border-left: 1px solid #e0e0e0;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+/* ── 日历弹出控件（QCalendarWidget） ──────────────────────── */
+QCalendarWidget {
+    background-color: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-radius: 10px;
+}
+
+/* 日历上方的年月导航栏 */
+QCalendarWidget QWidget#qt_calendar_navigationbar {
+    background-color: #1a1a2e;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    padding: 6px;
+    min-height: 44px;
+}
+
+/* 年月显示文字 */
+QCalendarWidget QToolButton {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: bold;
+    background-color: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    margin: 0 2px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QCalendarWidget QToolButton:hover {
+    background-color: #2d2d4e;
+}
+
+QCalendarWidget QToolButton:pressed {
+    background-color: #2d5aa0;
+}
+
+/* 上一月/下一月箭头按钮 */
+QCalendarWidget QToolButton#qt_calendar_prevmonth,
+QCalendarWidget QToolButton#qt_calendar_nextmonth {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: bold;
+    background-color: #2d2d4e;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+QCalendarWidget QToolButton#qt_calendar_prevmonth:hover,
+QCalendarWidget QToolButton#qt_calendar_nextmonth:hover {
+    background-color: #2d5aa0;
+}
+
+/* 年月选择下拉中的 SpinBox */
+QCalendarWidget QSpinBox {
+    background-color: #ffffff;
+    color: #1a1a2e;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 14px;
+    font-weight: bold;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QCalendarWidget QSpinBox::up-button,
+QCalendarWidget QSpinBox::down-button {
+    border: none;
+    width: 18px;
+}
+
+/* 日历表格区域 */
+QCalendarWidget QAbstractItemView {
+    background-color: #ffffff;
+    alternate-background-color: #f8f9fb;
+    selection-background-color: #2d5aa0;
+    selection-color: #ffffff;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+QCalendarWidget QAbstractItemView:item {
+    padding: 6px;
+    min-width: 36px;
+    min-height: 36px;
+}
+
+/* 星期头行（一、二、三...） */
+QCalendarWidget QAbstractItemView QHeaderView {
+    background-color: #f0f2f5;
+}
+
+QCalendarWidget QAbstractItemView QHeaderView::section {
+    background-color: #f0f2f5;
+    color: #666;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 8px;
+    border: none;
+    border-bottom: 2px solid #e0e0e0;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+/* 今天的日期高亮 */
+QCalendarWidget QAbstractItemView:item:selected {
+    background-color: #2d5aa0;
+    color: #ffffff;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+/* ── 标签胶囊 ────────────────────────────────────────────── */
+#TagCapsule {
+    background-color: #e8f0fe;
+    color: #2d5aa0;
+    border-radius: 12px;
+    padding: 4px 12px;
+    font-size: 12px;
+    margin: 2px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+/* ── 对话框按钮专用样式 ──────────────────────────────────── */
+#DialogBtnSecondary {
+    background-color: #f0f2f5;
+    color: #333;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+#DialogBtnSecondary:hover {
+    background-color: #e0e2e5;
+}
+
+/* ── 工具栏按钮专用样式 ──────────────────────────────────── */
+#ToolBtnActive {
+    background: #e8f0fe;
+    color: #2d5aa0;
+    border: 1px solid #c0d4ff;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+#ToolBtnInactive {
+    background: transparent;
+    color: #666;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+#ToolBtnInactive:hover {
+    background: #f0f2f5;
+}
+
+/* ── 分页按钮专用 ────────────────────────────────────────── */
+#PageBtn {
+    background: #f0f2f5;
+    color: #333;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "SimHei", sans-serif;
+}
