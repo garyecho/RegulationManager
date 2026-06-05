@@ -6,9 +6,23 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-# ── 路径 ──
-APP_DIR = Path(__file__).parent
-DATA_DIR = APP_DIR / "data"
+# ── 路径（兼容 PyInstaller 打包模式）──
+if getattr(sys, 'frozen', False):
+    # 打包模式：PyInstaller 6.x 把资源放在 _internal/ 子目录
+    EXE_DIR = Path(sys.executable).parent
+    INTERNAL_DIR = EXE_DIR / "_internal"
+    # 如果 _internal 存在则使用它（PyInstaller 6.x onedir 模式）
+    if INTERNAL_DIR.exists():
+        APP_DIR = INTERNAL_DIR
+    else:
+        APP_DIR = EXE_DIR
+    # data 目录始终在 exe 同级（方便用户访问和备份）
+    DATA_DIR = EXE_DIR / "data"
+else:
+    # 开发模式：脚本所在目录
+    APP_DIR = Path(__file__).parent
+    DATA_DIR = APP_DIR / "data"
+
 RESOURCES_DIR = APP_DIR / "resources"
 DOCUMENTS_DIR = DATA_DIR / "documents"
 BACKUPS_DIR = DATA_DIR / "backups"
