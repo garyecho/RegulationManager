@@ -6,6 +6,15 @@ echo.
 
 cd /d "%~dp0"
 
+echo [0/4] Activating venv38 ...
+if exist "venv38\Scripts\activate.bat" (
+    call venv38\Scripts\activate.bat
+) else (
+    echo ERROR: venv38 not found
+    pause
+    exit /b 1
+)
+
 echo [1/4] Checking PyInstaller ...
 pip show pyinstaller >nul 2>&1
 if errorlevel 1 (

@@ -1,8 +1,8 @@
 """
 Toast 弹出提示组件 — 深色主题适配
 """
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import QLabel, QWidget
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QLabel, QWidget
 
 from ui.styles import _FONT
 
@@ -31,9 +31,9 @@ class Toast(QLabel):
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.ToolTip)
-        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.ToolTip)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.setFixedWidth(320)
         self.setWordWrap(True)
 

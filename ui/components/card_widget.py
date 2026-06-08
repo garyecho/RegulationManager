@@ -1,8 +1,8 @@
 """
 文档卡片组件 — 用于卡片视图
 """
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 
 from models import DocumentData
 from config import DOC_STATUS_LABELS
@@ -20,7 +20,7 @@ class DocumentCard(QWidget):
         self.doc = doc
         self.setObjectName("DocumentCard")
         self.setFixedSize(280, 160)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setCursor(Qt.PointingHandCursor)
         self._setup_ui()
 
     def _setup_ui(self):

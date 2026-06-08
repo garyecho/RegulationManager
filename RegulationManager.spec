@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-RegulationManager PyInstaller Spec
+RegulationManager PyInstaller Spec (PyQt5 + Win7 compatible)
 Usage: pyinstaller RegulationManager.spec
 """
 import os
@@ -10,7 +10,7 @@ block_cipher = None
 
 # ── Hidden imports ──
 hidden_imports = []
-hidden_imports += collect_submodules('PyQt6')
+hidden_imports += collect_submodules('PyQt5')
 hidden_imports += collect_submodules('whoosh')
 hidden_imports += collect_submodules('jieba')
 hidden_imports += collect_submodules('fitz')
@@ -18,7 +18,7 @@ hidden_imports += collect_submodules('docx')
 hidden_imports += collect_submodules('sqlalchemy')
 
 hidden_imports += [
-    'PyQt6.sip',
+    'PyQt5.sip',
     'sqlite3',
     'encodings',
     'codecs',
@@ -45,7 +45,7 @@ a = Analysis(
     runtime_hooks=[],
     excludes=[
         'matplotlib', 'numpy', 'scipy', 'pandas',
-        'tkinter', 'PyQt5', 'PIL', 'cv2',
+        'tkinter', 'PyQt6', 'PIL', 'cv2',
         'IPython', 'jupyter', 'notebook',
         'setuptools', 'pip', 'wheel',
     ],

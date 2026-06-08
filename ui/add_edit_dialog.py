@@ -4,9 +4,9 @@
 from typing import Optional, List
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, QDate, QTimer, QEvent, QObject
-from PyQt6.QtGui import QWheelEvent, QKeyEvent
-from PyQt6.QtWidgets import (
+from PyQt5.QtCore import Qt, QDate, QTimer, QEvent, QObject
+from PyQt5.QtGui import QWheelEvent, QKeyEvent
+from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLineEdit, QTextEdit, QComboBox, QDateEdit,
     QPushButton, QLabel, QFileDialog, QGroupBox, QMessageBox,
@@ -75,8 +75,8 @@ class AddEditDialog(QDialog):
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         scroll_content = QWidget()
         layout = QVBoxLayout(scroll_content)
@@ -101,7 +101,7 @@ class AddEditDialog(QDialog):
         info_group = QGroupBox("基本信息")
         form = QFormLayout(info_group)
         form.setSpacing(10)
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form.setLabelAlignment(Qt.AlignRight)
 
         # 标题
         self._title_edit = QLineEdit()
@@ -145,7 +145,7 @@ class AddEditDialog(QDialog):
         self._category_combo = ClickFocusComboBox()
         for cat in self.categories:
             self._category_combo.addItem(cat.name, cat.id)
-        self._category_combo.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        self._category_combo.setFocusPolicy(Qt.ClickFocus)
         form.addRow("分类 *", self._category_combo)
 
         # 状态 — 使用自定义下拉框
@@ -153,7 +153,7 @@ class AddEditDialog(QDialog):
         from config import DOC_STATUS_LABELS
         for value, label in DOC_STATUS_LABELS.items():
             self._status_combo.addItem(label, value)
-        self._status_combo.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        self._status_combo.setFocusPolicy(Qt.ClickFocus)
         form.addRow("状态", self._status_combo)
         layout.addWidget(info_group)
 
@@ -161,7 +161,7 @@ class AddEditDialog(QDialog):
         detail_group = QGroupBox("详细信息")
         detail_form = QFormLayout(detail_group)
         detail_form.setSpacing(10)
-        detail_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        detail_form.setLabelAlignment(Qt.AlignRight)
 
         self._org_edit = QLineEdit()
         self._org_edit.setPlaceholderText("如：国家金融监督管理总局")
@@ -176,14 +176,14 @@ class AddEditDialog(QDialog):
         self._eff_date.setCalendarPopup(True)
         self._eff_date.setDate(QDate.currentDate())
         self._eff_date.setDisplayFormat("yyyy-MM-dd")
-        self._eff_date.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        self._eff_date.setFocusPolicy(Qt.ClickFocus)
         detail_form.addRow("生效日期", self._eff_date)
 
         # 废止日期 — 使用自定义日期控件
         self._exp_date = ClickFocusDateEdit()
         self._exp_date.setCalendarPopup(True)
         self._exp_date.setDisplayFormat("yyyy-MM-dd")
-        self._exp_date.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        self._exp_date.setFocusPolicy(Qt.ClickFocus)
         detail_form.addRow("废止日期", self._exp_date)
 
         self._tag_input = TagInput()

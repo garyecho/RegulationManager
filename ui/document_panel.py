@@ -4,8 +4,8 @@
 """
 from typing import List, Optional, Set
 
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QLabel, QPushButton, QStackedWidget, QScrollArea,
     QHeaderView, QAbstractItemView, QGridLayout, QCheckBox
@@ -217,7 +217,7 @@ class DocumentPanel(QWidget):
 
         self._page_label = QLabel("第 1 / 1 页")
         self._page_label.setStyleSheet(PAGE_LABEL_LIGHT)
-        self._page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._page_label.setAlignment(Qt.AlignCenter)
         page_layout.addWidget(self._page_label, 1)
 
         self._btn_next = QPushButton("下一页 ▶")
@@ -236,14 +236,14 @@ class DocumentPanel(QWidget):
         )
         header = table.horizontalHeader()
         header.setStretchLastSection(True)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
         table.setColumnWidth(0, 40)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
         for col in range(2, 7):
-            header.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
-        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+            header.setSectionResizeMode(col, QHeaderView.ResizeToContents)
+        table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        table.setSelectionMode(QAbstractItemView.SingleSelection)
+        table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         table.setAlternatingRowColors(True)
         table.verticalHeader().setVisible(False)
         table.setShowGrid(False)
@@ -271,15 +271,15 @@ class DocumentPanel(QWidget):
         self._table.setColumnHidden(0, is_browse)
         if is_browse:
             self._table.horizontalHeader().setSectionResizeMode(
-                1, QHeaderView.ResizeMode.Stretch
+                1, QHeaderView.Stretch
             )
         else:
             self._table.setColumnWidth(0, 40)
             self._table.horizontalHeader().setSectionResizeMode(
-                0, QHeaderView.ResizeMode.Fixed
+                0, QHeaderView.Fixed
             )
             self._table.horizontalHeader().setSectionResizeMode(
-                1, QHeaderView.ResizeMode.Stretch
+                1, QHeaderView.Stretch
             )
 
         # 全选栏
@@ -328,14 +328,14 @@ class DocumentPanel(QWidget):
     # ── 复选框逻辑 ──
 
     def _on_checkbox_changed(self, state: int, doc_id: int):
-        if state == Qt.CheckState.Checked.value:
+        if state == Qt.Checked:
             self._checked_ids.add(doc_id)
         else:
             self._checked_ids.discard(doc_id)
         self._update_batch_ui()
 
     def _on_select_all_changed(self, state: int):
-        checked = (state == Qt.CheckState.Checked.value)
+        checked = (state == Qt.Checked)
         if checked:
             for doc in self._documents:
                 self._checked_ids.add(doc.id)
@@ -433,7 +433,7 @@ class DocumentPanel(QWidget):
             cb_widget = QWidget()
             cb_layout = QHBoxLayout(cb_widget)
             cb_layout.addWidget(cb)
-            cb_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            cb_layout.setAlignment(Qt.AlignCenter)
             cb_layout.setContentsMargins(0, 0, 0, 0)
             table.setCellWidget(row, 0, cb_widget)
             cb.stateChanged.connect(

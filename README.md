@@ -21,12 +21,18 @@
 | .docx | Word 2007+ |
 | .pdf | PDF 文档 |
 
+## 系统要求
+
+- **操作系统**：Windows 7 SP1 / 8 / 10 / 11（64位）
+- **运行环境**：无需安装 Python，解压即用
+- **可选依赖**：如在 Windows 7 上提示缺少 VCRUNTIME140.dll，请安装 [Visual C++ Redistributable 2015-2022](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+
 ## 目录结构
 
 ```
 RegulationManager/
 ├── main.py                    # 程序入口
-├── config.py                  # 全局配置
+├── config.py                  # 全局配置（兼容打包模式）
 ├── database/
 │   ├── models.py              # SQLAlchemy ORM 模型
 │   ├── crud.py                # CRUD 操作
@@ -56,11 +62,16 @@ RegulationManager/
 │   └── styles/
 │       ├── dark.qss           # 深色主题
 │       └── light.qss          # 亮色主题
-└── data/
-    ├── regulation.db          # SQLite 数据库
-    ├── documents/             # 上传的制度文件
-    ├── backups/               # 备份文件
-    └── logs/                  # 运行日志
+├── data/
+│   ├── regulation.db          # SQLite 数据库
+│   ├── documents/             # 上传的制度文件
+│   ├── backups/               # 备份文件
+│   └── logs/                  # 运行日志
+├── RegulationManager.spec     # PyInstaller 打包配置
+├── build.bat                  # 一键打包脚本
+└── dist_files/
+    ├── README.txt             # 用户使用说明（打包时复制到交付目录）
+    └── backup.txt             # 备份说明
 ```
 
 ## 开发环境
@@ -68,21 +79,22 @@ RegulationManager/
 ### 依赖
 
 ```
-PyQt6
+PyQt5
 sqlalchemy
 whoosh
 jieba
 PyMuPDF (fitz)
 python-docx
+pyinstaller
 ```
 
 ### 安装依赖
 
 ```bash
-pip install PyQt6 sqlalchemy whoosh jieba PyMuPDF python-docx
+pip install PyQt5 sqlalchemy whoosh jieba PyMuPDF python-docx pyinstaller
 ```
 
-### 运行
+### 运行（开发模式）
 
 ```bash
 cd D:\Code\RegulationManager
@@ -91,11 +103,62 @@ python main.py
 
 ## 打包（PyInstaller）
 
-### 一键打包
+### 为什么用 Python 3.8 打包
 
-```bash
-# 双击 build.bat 或在命令行执行：
+项目开发用的是 Python 3.13，但打包必须用 Python 3.8，原因是：
+
+- **Python 3.9+ 不支持 Windows 7**：会报 `api-ms-win-core-path-l1-1-0.dll` 缺失
+- **Python 3.8 是最后一个支持 Windows 7 的版本**
+- **打包后的 exe 内嵌了 Python 运行时**，用 3.8 打包就能在 Win7~Win11 全系列运行
+
+> Python 3.8 已于 2024 年 10 月 EOL，但仅用于打包不影响安全性。
+> 打包完可以删除 Python 3.8 和 venv38，不影响日常使用的 Python 3.13。
+
+### 打包步骤
+
+#### 1. 安装 Python 3.8
+
+下载地址：https://www.python.org/downloads/release/python-3820/
+
+安装时**不要勾选** "Add Python 3.8 to PATH"（避免覆盖默认的 Python 3.13）。
+
+#### 2. 创建虚拟环境
+
+```cmd
+cd D:\Code\RegulationManager
+
+# 用 Python 3.8 创建虚拟环境
+py -3.8 -m venv venv38
+
+# 激活虚拟环境
+.\venv38\Scripts\activate
+```
+
+激活后命令行前缀会显示 `(venv38)`，之后所有的 `python` 和 `pip` 命令都指向 Python 3.8。
+
+#### 3. 安装依赖
+
+```cmd
+# 如果有代理问题，先临时关闭系统代理（设置 → 网络 → 代理 → 关闭）
+
+pip install PyQt5 sqlalchemy whoosh jieba PyMuPDF python-docx pyinstaller -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn
+```
+
+#### 4. 打包
+
+```cmd
+# 确保 (venv38) 已激活
 pyinstaller RegulationManager.spec --clean --noconfirm
+```
+
+#### 5. 整理交付目录
+
+```cmd
+mkdir dist\RegulationManager\data\documents
+mkdir dist\RegulationManager\data\backups
+mkdir dist\RegulationManager\data\logs
+copy dist_files\README.txt dist\RegulationManager\README.txt
+copy dist_files\backup.txt dist\RegulationManager\backup.txt
 ```
 
 ### 打包后结构
@@ -112,6 +175,18 @@ dist/RegulationManager/
 ├── README.txt                     # 使用说明
 └── backup.txt                     # 备份说明
 ```
+
+### 关于虚拟环境（venv）
+
+```
+系统 Python 3.13：  C:\...\Python313\python.exe     ← 日常开发用
+虚拟环境 Python 3.8：D:\...\venv38\Scripts\python.exe ← 打包专用
+```
+
+- venv 是 Python 的独立副本，有自己的包目录（`venv38\Lib\site-packages\`）
+- 激活后 `python` 和 `pip` 自动指向 venv 内的版本
+- 两个环境完全隔离，互不影响
+- 打包完成后可删除 `venv38` 文件夹
 
 ## 使用说明
 
@@ -165,16 +240,20 @@ dist/RegulationManager/
 
 | 组件 | 技术 |
 |------|------|
-| GUI 框架 | PyQt6 |
+| GUI 框架 | PyQt5 5.15（兼容 Win7~Win11） |
 | 数据库 | SQLite + SQLAlchemy |
 | 全文搜索 | Whoosh + jieba |
 | 文件解析 | PyMuPDF (PDF)、python-docx (Word) |
-| 打包 | PyInstaller (onedir) |
+| 打包 | PyInstaller 6.x (onedir) |
+| 打包 Python | 3.8（兼容 Win7~Win11） |
 
 ## 常见问题
 
 **Q: 双击 exe 无法启动？**
 A: 确保路径中不含特殊字符，尝试以管理员身份运行。
+
+**Q: Win7 提示缺少 VCRUNTIME140.dll？**
+A: 安装 Visual C++ Redistributable 2015-2022 即可。
 
 **Q: 搜索不到内容？**
 A: 首次导入文件后需要等待索引建立完成，大文件可能需要几秒。
@@ -186,6 +265,14 @@ A: 用备份文件替换 `data/regulation.db` 即可恢复。
 A: 复制整个程序文件夹（包含 `data/` 目录）到新位置即可。
 
 ## 版本历史
+
+### v1.0.1 (2026-06)
+
+- **PyQt6 → PyQt5 迁移**：彻底解决 Windows 7 兼容性问题（Qt 6.0+ 不支持 Win7）
+- 修复 `QFontDatabase.families()` 在 PyQt5 中需实例调用的问题
+- `build.bat` 自动激活 venv38 虚拟环境，避免打包时漏掉第三方库
+- 所有 scoped enum 改为 flat enum（如 `Qt.AlignmentFlag.AlignCenter` → `Qt.AlignCenter`）
+- `QAction` 从 `QtGui` 移回 `QtWidgets`（PyQt5 位置）
 
 ### v1.0.0 (2026-06)
 
@@ -199,3 +286,4 @@ A: 复制整个程序文件夹（包含 `data/` 目录）到新位置即可。
 - 数据备份/恢复
 - 深色/亮色主题
 - 文号智能提取
+- 兼容 Windows 7 / 8 / 10 / 11

@@ -3,9 +3,9 @@
 """
 from typing import Optional
 
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import (
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import (
+    QAction,
     QWidget, QVBoxLayout, QLabel, QTreeWidget, QTreeWidgetItem,
     QPushButton, QFrame, QMenu
 )
@@ -43,7 +43,7 @@ class Sidebar(QWidget):
 
         sep = QFrame()
         sep.setObjectName("SidebarSeparator")
-        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShape(QFrame.HLine)
         layout.addWidget(sep)
 
         btn_all = QPushButton("  📋  全部制度")
@@ -73,7 +73,7 @@ class Sidebar(QWidget):
 
         sep2 = QFrame()
         sep2.setObjectName("SidebarSeparator")
-        sep2.setFrameShape(QFrame.Shape.HLine)
+        sep2.setFrameShape(QFrame.HLine)
         layout.addWidget(sep2)
 
         cat_label = QLabel("  分类目录")
@@ -84,14 +84,14 @@ class Sidebar(QWidget):
         self._tree.setHeaderHidden(True)
         self._tree.setIndentation(16)
         self._tree.setAnimated(True)
-        self._tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self._tree.customContextMenuRequested.connect(self._on_tree_context_menu)
         self._tree.itemClicked.connect(self._on_category_clicked)
         layout.addWidget(self._tree, 1)
 
         sep3 = QFrame()
         sep3.setObjectName("SidebarSeparator")
-        sep3.setFrameShape(QFrame.Shape.HLine)
+        sep3.setFrameShape(QFrame.HLine)
         layout.addWidget(sep3)
 
         self._stats_label = QLabel("  共 0 项制度")
@@ -114,7 +114,7 @@ class Sidebar(QWidget):
     def _on_category_clicked(self, item, column):
         for b in [self._btn_all, self._btn_recent, self._btn_recycle, self._btn_stats]:
             b.setChecked(False)
-        cat_id = item.data(0, Qt.ItemDataRole.UserRole)
+        cat_id = item.data(0, Qt.UserRole)
         if cat_id is not None:
             self._current_cat_id = cat_id
             self.category_selected.emit(cat_id)
@@ -124,7 +124,7 @@ class Sidebar(QWidget):
         item = self._tree.itemAt(pos)
         if not item:
             return
-        cat_id = item.data(0, Qt.ItemDataRole.UserRole)
+        cat_id = item.data(0, Qt.UserRole)
         if cat_id is None:
             return
 
@@ -144,7 +144,7 @@ class Sidebar(QWidget):
             for cat in cats:
                 item = QTreeWidgetItem()
                 item.setText(0, f"{cat.name}  ({cat.doc_count})")
-                item.setData(0, Qt.ItemDataRole.UserRole, cat.id)
+                item.setData(0, Qt.UserRole, cat.id)
                 item.setToolTip(0, cat.name)
                 if parent_item:
                     parent_item.addChild(item)

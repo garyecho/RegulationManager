@@ -1,7 +1,7 @@
 """
 分类服务
 """
-from typing import List
+from typing import List, Optional
 from database import get_session
 from database.crud import CategoryCRUD, DocumentCRUD
 from models import CategoryData
@@ -35,7 +35,7 @@ def get_all_categories() -> List[CategoryData]:
         return [_to_dto(c, doc_counts) for c in cats]
 
 
-def add_category(name: str) -> CategoryData | None:
+def add_category(name: str) -> Optional[CategoryData]:
     with get_session() as session:
         if CategoryCRUD.exists(session, name):
             return None

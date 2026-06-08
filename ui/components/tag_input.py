@@ -3,8 +3,8 @@
 """
 from typing import List
 
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QLabel
 )
 
@@ -18,7 +18,7 @@ class TagCapsule(QLabel):
         super().__init__(text, parent)
         self.tag_text = text
         self.setObjectName("TagCapsule")
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setCursor(Qt.PointingHandCursor)
         self.setToolTip("点击移除标签")
 
     def mousePressEvent(self, event):
@@ -44,7 +44,7 @@ class TagInput(QWidget):
         self._tags_layout = QHBoxLayout(self._tags_container)
         self._tags_layout.setContentsMargins(0, 0, 0, 0)
         self._tags_layout.setSpacing(4)
-        self._tags_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self._tags_layout.setAlignment(Qt.AlignLeft)
         layout.addWidget(self._tags_container)
 
         self._input = QLineEdit()

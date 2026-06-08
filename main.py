@@ -10,9 +10,9 @@ from pathlib import Path
 APP_DIR = Path(__file__).parent
 sys.path.insert(0, str(APP_DIR))
 
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QFontDatabase
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QFontDatabase
 
 import config
 
@@ -55,7 +55,7 @@ def main():
     app.setOrganizationName("RegulationManager")
 
     # 设置全局中文字体（按优先级检测可用字体）
-    available = QFontDatabase.families()
+    available = QFontDatabase().families()
     preferred_fonts = ["Microsoft YaHei", "Microsoft YaHei UI", "SimHei",
                        "DengXian", "Arial Unicode MS", "Noto Sans CJK SC",
                        "WenQuanYi Micro Hei", "PingFang SC"]
@@ -67,16 +67,18 @@ def main():
 
     font = QFont(chosen)
     font.setPointSize(10)
-    font.setHintingPreference(QFont.HintingPreference.PreferFullHinting)
+    font.setHintingPreference(QFont.PreferFullHinting)
     font.setStyleStrategy(
-        QFont.StyleStrategy.PreferAntialias | QFont.StyleStrategy.PreferQuality
+        QFont.PreferAntialias | QFont.PreferQuality
     )
     app.setFont(font)
 
-    # 高 DPI 支持
-    app.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-    )
+    # 高 DPI 支持 (Qt5 通过属性启用)
+    try:
+        app.setAttribute(Qt.AA_EnableHighDpiScaling)
+        app.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    except AttributeError:
+        pass  # Qt 5.14+ 默认启用
 
     # 加载深色主题
     load_stylesheet(app, "dark")

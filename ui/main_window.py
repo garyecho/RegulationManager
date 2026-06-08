@@ -4,9 +4,10 @@
 import logging
 from typing import Optional
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QKeySequence
-from PyQt6.QtWidgets import (
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import (
+    QAction,
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QLineEdit, QToolBar, QMenuBar, QStatusBar,
     QLabel, QPushButton, QFileDialog, QMessageBox,
@@ -428,9 +429,9 @@ class MainWindow(QMainWindow):
         reply = QMessageBox.question(
             self, "确认删除",
             f"确定要删除「{doc.title}」吗？\n删除后可在回收站恢复。",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.Yes | QMessageBox.No,
         )
-        if reply == QMessageBox.StandardButton.Yes:
+        if reply == QMessageBox.Yes:
             if document_service.delete_document(doc_id):
                 Toast.success(self, f"「{doc.title}」已移入回收站")
                 self._refresh_categories()
@@ -462,9 +463,9 @@ class MainWindow(QMainWindow):
         reply = QMessageBox.question(
             self, "批量删除确认",
             f"确定要将选中的 {count} 项制度移入回收站吗？\n\n移入后可在回收站中恢复。",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.Yes | QMessageBox.No,
         )
-        if reply != QMessageBox.StandardButton.Yes:
+        if reply != QMessageBox.Yes:
             return
         result = document_service.batch_delete(doc_ids)
         if result["success"] > 0:
@@ -480,9 +481,9 @@ class MainWindow(QMainWindow):
         reply = QMessageBox.question(
             self, "批量还原确认",
             f"确定要还原选中的 {count} 项制度吗？\n\n还原后将恢复到原分类列表中。",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.Yes | QMessageBox.No,
         )
-        if reply != QMessageBox.StandardButton.Yes:
+        if reply != QMessageBox.Yes:
             return
         result = document_service.batch_restore(doc_ids)
         if result["success"] > 0:
@@ -500,17 +501,17 @@ class MainWindow(QMainWindow):
             f"⚠️ 警告：此操作不可恢复！\n\n"
             f"将永久删除选中的 {count} 项制度及其文件。\n\n"
             f"确定要继续吗？",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.Yes | QMessageBox.No,
         )
-        if reply != QMessageBox.StandardButton.Yes:
+        if reply != QMessageBox.Yes:
             return
         # 二次确认
         reply2 = QMessageBox.warning(
             self, "二次确认",
             f"请再次确认：永久删除 {count} 项制度？\n\n此操作无法撤销！",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.Yes | QMessageBox.No,
         )
-        if reply2 != QMessageBox.StandardButton.Yes:
+        if reply2 != QMessageBox.Yes:
             return
         result = document_service.batch_permanent_delete(doc_ids)
         if result["success"] > 0:
@@ -547,7 +548,7 @@ class MainWindow(QMainWindow):
 
     def _on_add_category(self):
         """新增分类"""
-        from PyQt6.QtWidgets import QInputDialog
+        from PyQt5.QtWidgets import QInputDialog
         name, ok = QInputDialog.getText(self, "新增分类", "分类名称：")
         if ok and name.strip():
             result = category_service.add_category(name.strip())
@@ -581,9 +582,9 @@ class MainWindow(QMainWindow):
 
         reply = QMessageBox.warning(
             self, "⚠️ 删除分类确认", msg,
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.Yes | QMessageBox.No,
         )
-        if reply != QMessageBox.StandardButton.Yes:
+        if reply != QMessageBox.Yes:
             return
 
         result = category_service.delete_category(cat_id)
@@ -617,7 +618,7 @@ class MainWindow(QMainWindow):
             return
 
         # 弹出分类选择对话框
-        from PyQt6.QtWidgets import QDialog, QFormLayout, QComboBox as QCombo
+        from PyQt5.QtWidgets import QDialog, QFormLayout, QComboBox as QCombo
         dlg = QDialog(self)
         dlg.setWindowTitle("批量导入 — 选择分类")
         dlg.setMinimumWidth(400)
@@ -630,7 +631,7 @@ class MainWindow(QMainWindow):
         dlg_layout.addWidget(info_label)
 
         form = QFormLayout()
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form.setLabelAlignment(Qt.AlignRight)
         cat_combo = QCombo()
         cats = category_service.get_all_categories()
         for cat in cats:
@@ -648,7 +649,7 @@ class MainWindow(QMainWindow):
         btn_layout.addWidget(btn_ok)
         dlg_layout.addLayout(btn_layout)
 
-        if dlg.exec() != QDialog.DialogCode.Accepted:
+        if dlg.exec() != QDialog.Accepted:
             return
 
         category_id = cat_combo.currentData()
@@ -685,9 +686,9 @@ class MainWindow(QMainWindow):
             reply = QMessageBox.question(
                 self, "确认恢复",
                 "恢复将覆盖当前数据，确定继续？",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                QMessageBox.Yes | QMessageBox.No
             )
-            if reply == QMessageBox.StandardButton.Yes:
+            if reply == QMessageBox.Yes:
                 from utils import backup_manager
                 if backup_manager.restore_backup(path):
                     Toast.success(self, "恢复完成，重启应用后生效")
