@@ -1,10 +1,11 @@
 """
 统计服务
 """
+from sqlalchemy import func
+
 from database import get_session
 from database.crud import DocumentCRUD, CategoryCRUD
 from database.models import Document
-from sqlalchemy import func
 
 
 def get_summary() -> dict:
@@ -13,19 +14,12 @@ def get_summary() -> dict:
         total_docs = DocumentCRUD.count(session)
         total_cats = len(CategoryCRUD.get_all(session))
 
-        # 按状态统计
-        active = session.query(func.count(Document.id)).filter(
-            Document.is_deleted == False, Document.status == "active"
-        ).scalar() or 0
-        archived = session.query(func.count(Document.id)).filter(
-            Document.is_deleted == False, Document.status == "archived"
-        ).scalar() or 0
-        superseded = session.query(func.count(Document.id)).filter(
-            Document.is_deleted == False, Document.status == "superseded"
-        ).scalar() or 0
-        expired = session.query(func.count(Document.id)).filter(
-            Document.is_deleted == False, Document.status == "expired"
-        ).scalar() or 0
+        # 一次 GROUP BY 查询替代5次单独查询
+        rows = session.query(
+            Document.status, func.count(Document.id)
+        ).filter(Document.is_deleted == False).group_by(Document.status).all()
+        status_counts = {status: count for status, count in rows}
+
         deleted = session.query(func.count(Document.id)).filter(
             Document.is_deleted == True
         ).scalar() or 0
@@ -33,9 +27,9 @@ def get_summary() -> dict:
         return {
             "total_docs": total_docs,
             "total_categories": total_cats,
-            "active_count": active,
-            "archived_count": archived,
-            "superseded_count": superseded,
-            "expired_count": expired,
+            "active_count": status_counts.get("active", 0),
+            "archived_count": status_counts.get("archived", 0),
+            "superseded_count": status_counts.get("superseded", 0),
+            "expired_count": status_counts.get("expired", 0),
             "deleted_count": deleted,
         }

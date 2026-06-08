@@ -4,8 +4,8 @@
 from typing import Optional, List
 from pathlib import Path
 
-from PyQt5.QtCore import Qt, QDate, QTimer, QEvent, QObject
-from PyQt5.QtGui import QWheelEvent, QKeyEvent
+from PyQt5.QtCore import Qt, QDate, QTimer
+from PyQt5.QtGui import QWheelEvent
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLineEdit, QTextEdit, QComboBox, QDateEdit,

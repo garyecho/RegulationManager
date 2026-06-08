@@ -1,9 +1,7 @@
 """
 工具函数
 """
-import re
 import hashlib
-from pathlib import Path
 
 
 def file_hash(path: str) -> str:
@@ -16,8 +14,7 @@ def file_hash(path: str) -> str:
 
 
 def parse_doc_filename(name: str) -> tuple:
-    """从文件名解析标题和文号"""
+    """从文件名解析标题和文号（委托给 text_parser）"""
     from utils.text_parser import extract_title_and_doc_no
     from pathlib import Path
-    stem = Path(name).stem
-    return extract_title_and_doc_no(stem)
+    return extract_title_and_doc_no(Path(name).stem)

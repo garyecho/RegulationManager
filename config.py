@@ -1,7 +1,6 @@
 """
 全局配置
 """
-import os
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -34,7 +33,7 @@ for d in [DATA_DIR, DOCUMENTS_DIR, BACKUPS_DIR, LOG_DIR]:
 
 # ── 应用信息 ──
 APP_NAME = "制度汇编管理系统"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.2"
 
 # ── 数据库 ──
 DB_PATH = DATA_DIR / "regulation.db"

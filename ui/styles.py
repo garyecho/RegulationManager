@@ -23,7 +23,6 @@ _ERROR = "#f87171"           # 错误红
 # ── 文件选择标签 ──
 FILE_LABEL_DEFAULT = f"color: {_TEXT_MUTED}; padding: 8px; font-family: {_FONT};"
 FILE_LABEL_SELECTED_LIGHT = f"color: {_TEXT_PRIMARY}; padding: 8px; font-weight: bold; font-family: {_FONT};"
-FILE_LABEL_SELECTED_DARK = f"color: {_TEXT_PRIMARY}; padding: 8px; font-weight: bold; font-family: {_FONT};"
 
 # ── 对话框按钮 ──
 DIALOG_BTN_SECONDARY = (

@@ -2,7 +2,6 @@
 备份管理
 """
 import zipfile
-import shutil
 import logging
 from datetime import datetime
 from pathlib import Path

@@ -1,63 +1,122 @@
 @echo off
+chcp 437 >nul 2>&1
+setlocal EnableDelayedExpansion
+
 echo ==========================================
 echo   RegulationManager - Build Script
+echo   Usage: build.bat [x64 x86 all]
 echo ==========================================
 echo.
 
 cd /d "%~dp0"
 
-echo [0/4] Activating venv38 ...
-if exist "venv38\Scripts\activate.bat" (
-    call venv38\Scripts\activate.bat
+set BUILD_X64=0
+set BUILD_X86=0
+
+if "%1"=="" (
+    set BUILD_X64=1
+    set BUILD_X86=1
+) else if /i "%1"=="x64" (
+    set BUILD_X64=1
+) else if /i "%1"=="x86" (
+    set BUILD_X86=1
+) else if /i "%1"=="all" (
+    set BUILD_X64=1
+    set BUILD_X86=1
 ) else (
-    echo ERROR: venv38 not found
+    echo Unknown option: %1
+    echo Usage: build.bat [x64 x86 all]
     pause
     exit /b 1
 )
 
-echo [1/4] Checking PyInstaller ...
-pip show pyinstaller >nul 2>&1
-if errorlevel 1 (
-    echo Installing PyInstaller ...
-    pip install pyinstaller
+REM ==========================================
+REM   64-bit Build
+REM ==========================================
+
+if !BUILD_X64!==1 (
+    echo.
+    echo ==========================================
+    echo   Building 64-bit (x64)
+    echo ==========================================
+
+    if not exist "venv38\Scripts\activate.bat" (
+        echo ERROR: venv38 not found.
+        pause
+        exit /b 1
+    )
+
+    call venv38\Scripts\activate.bat
+
+    echo [x64] Cleaning ...
+    if exist build rmdir /s /q build
+    if exist dist\RegulationManager_x64 rmdir /s /q dist\RegulationManager_x64
+
+    echo [x64] Building ...
+    set BUILD_ARCH=x64
+    pyinstaller RegulationManager.spec --clean --noconfirm
+    if errorlevel 1 (
+        echo [x64] BUILD FAILED
+        pause
+        exit /b 1
+    )
+
+    echo [x64] Preparing delivery ...
+    mkdir "dist\RegulationManager_x64\data\documents" 2>nul
+    mkdir "dist\RegulationManager_x64\data\backups" 2>nul
+    mkdir "dist\RegulationManager_x64\data\logs" 2>nul
+    copy /y "dist_files\README.txt" "dist\RegulationManager_x64\README.txt" >nul
+    copy /y "dist_files\backup.txt" "dist\RegulationManager_x64\backup.txt" >nul
+    echo [x64] DONE
 )
 
-echo [2/4] Cleaning old builds ...
-if exist build rmdir /s /q build
-if exist dist rmdir /s /q dist
+REM ==========================================
+REM   32-bit Build
+REM ==========================================
 
-echo [3/4] Building ...
-pyinstaller RegulationManager.spec --clean --noconfirm
-if errorlevel 1 (
-    echo BUILD FAILED
-    pause
-    exit /b 1
+if !BUILD_X86!==1 (
+    echo.
+    echo ==========================================
+    echo   Building 32-bit (x86)
+    echo ==========================================
+
+    if not exist "venv38_x86\Scripts\activate.bat" (
+        echo ERROR: venv38_x86 not found.
+        echo Run setup_x86.bat first.
+        pause
+        exit /b 1
+    )
+
+    call venv38_x86\Scripts\activate.bat
+
+    echo [x86] Cleaning ...
+    if exist build rmdir /s /q build
+    if exist dist\RegulationManager_x86 rmdir /s /q dist\RegulationManager_x86
+
+    echo [x86] Building ...
+    set BUILD_ARCH=x86
+    pyinstaller RegulationManager.spec --clean --noconfirm
+    if errorlevel 1 (
+        echo [x86] BUILD FAILED
+        pause
+        exit /b 1
+    )
+
+    echo [x86] Preparing delivery ...
+    mkdir "dist\RegulationManager_x86\data\documents" 2>nul
+    mkdir "dist\RegulationManager_x86\data\backups" 2>nul
+    mkdir "dist\RegulationManager_x86\data\logs" 2>nul
+    copy /y "dist_files\README.txt" "dist\RegulationManager_x86\README.txt" >nul
+    copy /y "dist_files\backup.txt" "dist\RegulationManager_x86\backup.txt" >nul
+    echo [x86] DONE
 )
-
-echo [4/4] Preparing delivery ...
-
-set DIST_DIR=dist\RegulationManager
-
-if not exist "%DIST_DIR%" (
-    echo ERROR: dist folder not found
-    pause
-    exit /b 1
-)
-
-mkdir "%DIST_DIR%\data\documents" 2>nul
-mkdir "%DIST_DIR%\data\backups" 2>nul
-mkdir "%DIST_DIR%\data\logs" 2>nul
-
-copy /y "dist_files\README.txt" "%DIST_DIR%\README.txt" >nul
-copy /y "dist_files\backup.txt" "%DIST_DIR%\backup.txt" >nul
 
 echo.
 echo ==========================================
-echo   BUILD SUCCESS
-echo   Output: %DIST_DIR%
-echo   Exe:    %DIST_DIR%\RegulationManager.exe
+echo   ALL BUILDS COMPLETE
 echo ==========================================
-echo.
-echo NOTE: To rename exe to Chinese, run rename.bat
+if !BUILD_X64!==1 echo   x64: dist\RegulationManager_x64\
+if !BUILD_X86!==1 echo   x86: dist\RegulationManager_x86\
+echo ==========================================
 echo.
 pause

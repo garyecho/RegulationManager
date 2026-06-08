@@ -1,7 +1,7 @@
 """
 左侧边栏 — 分类树 + 快捷入口 + 统计摘要
 """
-from typing import Optional
+from typing import Dict, Optional
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import (
     QPushButton, QFrame, QMenu
 )
 
-from models import CategoryData
 from ui.styles import SIDEBAR_CAT_LABEL_LIGHT, SIDEBAR_STATS_LIGHT, SIDEBAR_ADD_CAT_BTN
 
 
@@ -25,7 +24,7 @@ class Sidebar(QWidget):
         self.setObjectName("Sidebar")
         self.setFixedWidth(260)
         self._current_cat_id: Optional[int] = None
-        self._category_items: dict[int, QTreeWidgetItem] = {}
+        self._category_items: Dict[int, QTreeWidgetItem] = {}
         self._setup_ui()
 
     def _setup_ui(self):

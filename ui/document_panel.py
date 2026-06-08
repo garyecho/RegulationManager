@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
 )
 
 from models import DocumentData, SearchResult
+from config import DOC_STATUS_LABELS
 from ui.components.card_widget import DocumentCard
 from ui.styles import (
     PANEL_TOOLBAR_LIGHT, PANEL_TITLE_LIGHT, PANEL_COUNT_LIGHT,
@@ -45,6 +46,7 @@ class DocumentPanel(QWidget):
         self._total_pages = 1
         self._documents: List[DocumentData] = []
         self._checked_ids: Set[int] = set()
+        self._current_sort: str = "updated_at"
         self._setup_ui()
 
     def _setup_ui(self):
@@ -422,7 +424,6 @@ class DocumentPanel(QWidget):
         table = self._table
         table.setRowCount(len(self._documents))
         table.blockSignals(True)
-        from config import DOC_STATUS_LABELS
         for row, doc in enumerate(self._documents):
             # 复选框列
             cb = QCheckBox()

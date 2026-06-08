@@ -4,14 +4,15 @@
 import logging
 from typing import Optional
 
+import os
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import (
-    QAction,
-    QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
-    QLineEdit, QToolBar, QMenuBar, QStatusBar,
+    QAction, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
+    QLineEdit, QToolBar, QStatusBar,
     QLabel, QPushButton, QFileDialog, QMessageBox,
-    QGridLayout, QFrame
+    QGridLayout, QFrame, QInputDialog, QDialog, QFormLayout, QComboBox
 )
 
 import config
@@ -417,7 +418,6 @@ class MainWindow(QMainWindow):
         """打开文档（双击）"""
         doc = document_service.get_document(doc_id)
         if doc and doc.file_path:
-            import os
             os.startfile(doc.file_path) if os.name == 'nt' else os.system(f'xdg-open "{doc.file_path}"')
             self._statusbar.showMessage(f"已打开: {doc.title}")
 
@@ -548,7 +548,6 @@ class MainWindow(QMainWindow):
 
     def _on_add_category(self):
         """新增分类"""
-        from PyQt5.QtWidgets import QInputDialog
         name, ok = QInputDialog.getText(self, "新增分类", "分类名称：")
         if ok and name.strip():
             result = category_service.add_category(name.strip())
@@ -606,7 +605,6 @@ class MainWindow(QMainWindow):
         if not folder:
             return
 
-        import os
         files = []
         for f in os.listdir(folder):
             ext = os.path.splitext(f)[1].lower()
@@ -618,7 +616,6 @@ class MainWindow(QMainWindow):
             return
 
         # 弹出分类选择对话框
-        from PyQt5.QtWidgets import QDialog, QFormLayout, QComboBox as QCombo
         dlg = QDialog(self)
         dlg.setWindowTitle("批量导入 — 选择分类")
         dlg.setMinimumWidth(400)
@@ -632,7 +629,7 @@ class MainWindow(QMainWindow):
 
         form = QFormLayout()
         form.setLabelAlignment(Qt.AlignRight)
-        cat_combo = QCombo()
+        cat_combo = QComboBox()
         cats = category_service.get_all_categories()
         for cat in cats:
             cat_combo.addItem(cat.name, cat.id)

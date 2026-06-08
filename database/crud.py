@@ -35,7 +35,6 @@ class CategoryCRUD:
         if not cat:
             return {"success": False, "doc_count": 0}
         # 统计该分类下的文档数
-        from database.models import Document
         doc_count = session.query(Document).filter(
             Document.category_id == cat_id, Document.is_deleted == False
         ).count()
@@ -51,7 +50,6 @@ class CategoryCRUD:
     @staticmethod
     def get_doc_count(session: Session, cat_id: int) -> int:
         """获取分类下的文档数"""
-        from database.models import Document
         return session.query(Document).filter(
             Document.category_id == cat_id, Document.is_deleted == False
         ).count()
