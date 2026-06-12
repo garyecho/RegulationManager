@@ -5,6 +5,7 @@
 from typing import List, Optional, Set
 
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QLabel, QPushButton, QStackedWidget, QScrollArea,
@@ -32,6 +33,7 @@ class DocumentPanel(QWidget):
     document_selected = pyqtSignal(int)
     document_opened = pyqtSignal(int)
     document_deleted = pyqtSignal(int)
+    document_edit_requested = pyqtSignal(int)
     page_changed = pyqtSignal(int)
     view_mode_changed = pyqtSignal(str)
     batch_delete_requested = pyqtSignal(list)
@@ -56,16 +58,16 @@ class DocumentPanel(QWidget):
 
         # ── 顶部工具栏 ──
         toolbar = QWidget()
-        toolbar.setStyleSheet(PANEL_TOOLBAR_LIGHT)
+        toolbar.setObjectName("PanelToolbar")
         tb_layout = QHBoxLayout(toolbar)
         tb_layout.setContentsMargins(16, 8, 16, 8)
 
         self._title_label = QLabel("全部制度")
-        self._title_label.setStyleSheet(PANEL_TITLE_LIGHT)
+        self._title_label.setObjectName("PanelTitle")
         tb_layout.addWidget(self._title_label)
 
         self._count_label = QLabel("0 项")
-        self._count_label.setStyleSheet(PANEL_COUNT_LIGHT)
+        self._count_label.setObjectName("PanelCount")
         tb_layout.addWidget(self._count_label)
         tb_layout.addStretch()
 
@@ -76,43 +78,26 @@ class DocumentPanel(QWidget):
         batch_layout.setSpacing(6)
 
         self._selected_count_label = QLabel("已选 0 项")
-        self._selected_count_label.setStyleSheet(
-            f"color: #2d5aa0; font-size: 12px; font-weight: bold; font-family: {_FONT};"
-        )
+        self._selected_count_label.setObjectName("SelectedCount")
         batch_layout.addWidget(self._selected_count_label)
 
         # manage 模式：批量删除
         self._btn_batch_delete = QPushButton("🗑 批量删除")
-        self._btn_batch_delete.setStyleSheet(
-            f"QPushButton {{ background: rgba(248,113,113,0.12); color: #f87171; "
-            f"border: 1px solid rgba(248,113,113,0.3); border-radius: 6px; "
-            f"padding: 4px 12px; font-size: 12px; font-family: {_FONT}; }} "
-            f"QPushButton:hover {{ background: rgba(248,113,113,0.25); }}"
-        )
+        self._btn_batch_delete.setObjectName("BatchDeleteBtn")
         self._btn_batch_delete.setFixedHeight(30)
         self._btn_batch_delete.clicked.connect(self._on_batch_delete)
         batch_layout.addWidget(self._btn_batch_delete)
 
         # recycle 模式：还原
         self._btn_batch_restore = QPushButton("♻️ 还原")
-        self._btn_batch_restore.setStyleSheet(
-            f"QPushButton {{ background: rgba(52,211,153,0.12); color: #34d399; "
-            f"border: 1px solid rgba(52,211,153,0.3); border-radius: 6px; "
-            f"padding: 4px 12px; font-size: 12px; font-family: {_FONT}; }} "
-            f"QPushButton:hover {{ background: rgba(52,211,153,0.25); }}"
-        )
+        self._btn_batch_restore.setObjectName("BatchRestoreBtn")
         self._btn_batch_restore.setFixedHeight(30)
         self._btn_batch_restore.clicked.connect(self._on_batch_restore)
         batch_layout.addWidget(self._btn_batch_restore)
 
         # recycle 模式：彻底删除
         self._btn_batch_permanent = QPushButton("⚠️ 彻底删除")
-        self._btn_batch_permanent.setStyleSheet(
-            f"QPushButton {{ background: #dc3545; color: #fff; "
-            f"border: none; border-radius: 6px; "
-            f"padding: 4px 14px; font-size: 12px; font-weight: bold; font-family: {_FONT}; }} "
-            f"QPushButton:hover {{ background: #c82333; }}"
-        )
+        self._btn_batch_permanent.setObjectName("BatchPermanentBtn")
         self._btn_batch_permanent.setFixedHeight(30)
         self._btn_batch_permanent.clicked.connect(self._on_batch_permanent_delete)
         batch_layout.addWidget(self._btn_batch_permanent)
@@ -122,48 +107,43 @@ class DocumentPanel(QWidget):
 
         # ── 排序 + 视图切换 + 单个删除（所有模式共用容器，按模式显隐）──
         self._sort_label = QLabel("排序：")
-        self._sort_label.setStyleSheet(PANEL_SORT_LABEL_LIGHT)
+        self._sort_label.setObjectName("PanelSortLabel")
         tb_layout.addWidget(self._sort_label)
 
         btn_newest = QPushButton("最新更新")
-        btn_newest.setStyleSheet(tool_btn_style(True))
+        btn_newest.setObjectName("SortBtnActive")
         btn_newest.clicked.connect(lambda: self._on_sort("updated_at"))
         tb_layout.addWidget(btn_newest)
 
         btn_name = QPushButton("按名称")
-        btn_name.setStyleSheet(tool_btn_style(False))
+        btn_name.setObjectName("SortBtnInactive")
         btn_name.clicked.connect(lambda: self._on_sort("title"))
         tb_layout.addWidget(btn_name)
 
         self._sep1 = QLabel("|")
-        self._sep1.setStyleSheet(PANEL_SEPARATOR_LIGHT)
+        self._sep1.setObjectName("PanelSep")
         tb_layout.addWidget(self._sep1)
 
         self._btn_list = QPushButton("☰")
         self._btn_list.setToolTip("列表视图")
-        self._btn_list.setStyleSheet(view_btn_style(True))
+        self._btn_list.setObjectName("ViewBtnActive")
         self._btn_list.setFixedSize(32, 32)
         self._btn_list.clicked.connect(lambda: self._switch_view("list"))
         tb_layout.addWidget(self._btn_list)
 
         self._btn_card = QPushButton("▦")
         self._btn_card.setToolTip("卡片视图")
-        self._btn_card.setStyleSheet(view_btn_style(False))
+        self._btn_card.setObjectName("ViewBtnInactive")
         self._btn_card.setFixedSize(32, 32)
         self._btn_card.clicked.connect(lambda: self._switch_view("card"))
         tb_layout.addWidget(self._btn_card)
 
         self._sep2 = QLabel("|")
-        self._sep2.setStyleSheet(PANEL_SEPARATOR_LIGHT)
+        self._sep2.setObjectName("PanelSep")
         tb_layout.addWidget(self._sep2)
 
         self._btn_delete = QPushButton("🗑 删除")
-        self._btn_delete.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: #f87171; "
-            f"border: 1px solid transparent; border-radius: 6px; "
-            f"padding: 4px 12px; font-size: 12px; font-family: {_FONT}; }} "
-            f"QPushButton:hover {{ background: rgba(248,113,113,0.12); border-color: #f87171; }}"
-        )
+        self._btn_delete.setObjectName("DeleteBtn")
         self._btn_delete.setFixedHeight(32)
         self._btn_delete.clicked.connect(self._on_delete_clicked)
         tb_layout.addWidget(self._btn_delete)
@@ -172,18 +152,12 @@ class DocumentPanel(QWidget):
 
         # ── 全选栏 ──
         self._select_all_bar = QWidget()
-        self._select_all_bar.setStyleSheet(
-            f"background: #162032; border-bottom: 1px solid #334155;"
-        )
+        self._select_all_bar.setObjectName("SelectAllBar")
         sa_layout = QHBoxLayout(self._select_all_bar)
         sa_layout.setContentsMargins(16, 4, 16, 4)
 
         self._select_all_cb = QCheckBox("全选")
-        self._select_all_cb.setStyleSheet(
-            f"QCheckBox {{ font-size: 12px; color: #94a3b8; font-family: {_FONT}; "
-            f"spacing: 6px; }} "
-            f"QCheckBox::indicator {{ width: 16px; height: 16px; }}"
-        )
+        self._select_all_cb.setObjectName("SelectAllCheckbox")
         self._select_all_cb.stateChanged.connect(self._on_select_all_changed)
         sa_layout.addWidget(self._select_all_cb)
         sa_layout.addStretch()
@@ -208,22 +182,22 @@ class DocumentPanel(QWidget):
 
         # ── 分页栏 ──
         page_bar = QWidget()
-        page_bar.setStyleSheet(PANEL_TOOLBAR_LIGHT)
+        page_bar.setObjectName("PanelToolbar")
         page_layout = QHBoxLayout(page_bar)
         page_layout.setContentsMargins(16, 4, 16, 4)
 
         self._btn_prev = QPushButton("◀ 上一页")
-        self._btn_prev.setStyleSheet(PAGE_BTN_LIGHT)
+        self._btn_prev.setObjectName("PageBtn")
         self._btn_prev.clicked.connect(lambda: self._goto_page(self._current_page - 1))
         page_layout.addWidget(self._btn_prev)
 
         self._page_label = QLabel("第 1 / 1 页")
-        self._page_label.setStyleSheet(PAGE_LABEL_LIGHT)
+        self._page_label.setObjectName("PageLabel")
         self._page_label.setAlignment(Qt.AlignCenter)
         page_layout.addWidget(self._page_label, 1)
 
         self._btn_next = QPushButton("下一页 ▶")
-        self._btn_next.setStyleSheet(PAGE_BTN_LIGHT)
+        self._btn_next.setObjectName("PageBtn")
         self._btn_next.clicked.connect(lambda: self._goto_page(self._current_page + 1))
         page_layout.addWidget(self._btn_next)
         layout.addWidget(page_bar)
@@ -234,20 +208,26 @@ class DocumentPanel(QWidget):
         table = QTableWidget()
         table.setColumnCount(7)
         table.setHorizontalHeaderLabels(
-            ["✓", "标题", "文号", "分类", "状态", "部门", "更新时间"]
+            ["✓", "标题", "文号", "分类", "状态", "更新时间", "操作"]
         )
         header = table.horizontalHeader()
-        header.setStretchLastSection(True)
+        header.setStretchLastSection(False)
         header.setSectionResizeMode(0, QHeaderView.Fixed)
         table.setColumnWidth(0, 40)
         header.setSectionResizeMode(1, QHeaderView.Stretch)
-        for col in range(2, 7):
-            header.setSectionResizeMode(col, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.Fixed)
+        table.setColumnWidth(4, 110)
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(6, QHeaderView.Fixed)
+        table.setColumnWidth(6, 100)
         table.setSelectionBehavior(QAbstractItemView.SelectRows)
         table.setSelectionMode(QAbstractItemView.SingleSelection)
         table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         table.setAlternatingRowColors(True)
         table.verticalHeader().setVisible(False)
+        table.verticalHeader().setDefaultSectionSize(42)
         table.setShowGrid(False)
         table.itemClicked.connect(self._on_table_clicked)
         table.itemDoubleClicked.connect(self._on_table_double_clicked)
@@ -306,14 +286,14 @@ class DocumentPanel(QWidget):
         self._view_mode = mode
         if mode == "list":
             self._stack.setCurrentIndex(0)
-            self._btn_list.setStyleSheet(view_btn_style(True))
-            self._btn_card.setStyleSheet(view_btn_style(False))
+            self._btn_list.setObjectName("ViewBtnActive")
+            self._btn_card.setObjectName("ViewBtnInactive")
             if self._panel_mode != MODE_BROWSE:
                 self._select_all_bar.setVisible(len(self._documents) > 0)
         else:
             self._stack.setCurrentIndex(1)
-            self._btn_list.setStyleSheet(view_btn_style(False))
-            self._btn_card.setStyleSheet(view_btn_style(True))
+            self._btn_list.setObjectName("ViewBtnInactive")
+            self._btn_card.setObjectName("ViewBtnActive")
             self._select_all_bar.hide()
             self._rebuild_cards()
         self.view_mode_changed.emit(mode)
@@ -424,13 +404,11 @@ class DocumentPanel(QWidget):
         table = self._table
         table.setRowCount(len(self._documents))
         table.blockSignals(True)
+
         for row, doc in enumerate(self._documents):
             # 复选框列
             cb = QCheckBox()
-            cb.setStyleSheet(
-                f"QCheckBox {{ spacing: 0px; }} "
-                f"QCheckBox::indicator {{ width: 18px; height: 18px; }}"
-            )
+            cb.setObjectName("TableCheckbox")
             cb_widget = QWidget()
             cb_layout = QHBoxLayout(cb_widget)
             cb_layout.addWidget(cb)
@@ -445,14 +423,38 @@ class DocumentPanel(QWidget):
             table.setItem(row, 1, QTableWidgetItem(doc.title))
             table.setItem(row, 2, QTableWidgetItem(doc.doc_no))
             table.setItem(row, 3, QTableWidgetItem(doc.category_name))
+
+            # 状态列
             status_text = DOC_STATUS_LABELS.get(doc.status, doc.status)
-            table.setItem(row, 4, QTableWidgetItem(status_text))
-            table.setItem(row, 5, QTableWidgetItem(doc.department))
-            table.setItem(row, 6, QTableWidgetItem(
+            status_item = QTableWidgetItem(status_text)
+            status_item.setTextAlignment(Qt.AlignCenter)
+            if doc.status == "active":
+                status_item.setForeground(QColor("#28A745"))
+                status_item.setBackground(QColor(40, 167, 69, 30))
+                f = status_item.font(); f.setBold(True); status_item.setFont(f)
+            elif doc.status == "expired":
+                status_item.setForeground(QColor("#DC3545"))
+                status_item.setBackground(QColor(220, 53, 69, 30))
+                f = status_item.font(); f.setBold(True); status_item.setFont(f)
+            table.setItem(row, 4, status_item)
+
+            table.setItem(row, 5, QTableWidgetItem(
                 doc.updated_at[:10] if len(doc.updated_at) >= 10 else doc.updated_at
             ))
+
+            # 操作列
+            btn_edit = QPushButton("✏ 编辑")
+            btn_edit.setObjectName("TableEditBtn")
+            btn_edit.setFixedHeight(28)
+            btn_edit.clicked.connect(lambda _, did=doc.id: self.document_edit_requested.emit(did))
+            edit_widget = QWidget()
+            edit_layout = QHBoxLayout(edit_widget)
+            edit_layout.addWidget(btn_edit)
+            edit_layout.setAlignment(Qt.AlignCenter)
+            edit_layout.setContentsMargins(0, 0, 0, 0)
+            table.setCellWidget(row, 6, edit_widget)
+
         table.blockSignals(False)
-        # 根据当前模式隐藏复选框列
         table.setColumnHidden(0, self._panel_mode == MODE_BROWSE)
 
     def _rebuild_cards(self):

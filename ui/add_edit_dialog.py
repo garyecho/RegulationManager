@@ -67,6 +67,7 @@ class AddEditDialog(QDialog):
         self._setup_ui()
         if doc:
             self._populate(doc)
+            self._file_group.hide()
 
     def _setup_ui(self):
         outer_layout = QVBoxLayout(self)
@@ -84,18 +85,18 @@ class AddEditDialog(QDialog):
         layout.setContentsMargins(24, 24, 24, 24)
 
         # ── 文件选择区 ──
-        file_group = QGroupBox("文件")
-        file_layout = QHBoxLayout(file_group)
+        self._file_group = QGroupBox("文件")
+        file_layout = QHBoxLayout(self._file_group)
 
         self._file_label = QLabel("未选择文件")
-        self._file_label.setStyleSheet(FILE_LABEL_DEFAULT)
+        self._file_label.setObjectName("FileLabelDefault")
         file_layout.addWidget(self._file_label, 1)
 
         btn_browse = QPushButton("选择文件...")
-        btn_browse.setStyleSheet(DIALOG_BTN_SECONDARY)
+        btn_browse.setObjectName("DialogBtnSecondary")
         btn_browse.clicked.connect(self._browse_file)
         file_layout.addWidget(btn_browse)
-        layout.addWidget(file_group)
+        layout.addWidget(self._file_group)
 
         # ── 基本信息 ──
         info_group = QGroupBox("基本信息")
@@ -120,12 +121,7 @@ class AddEditDialog(QDialog):
         docno_layout.addWidget(self._docno_edit, 1)
 
         self._btn_re_extract = QPushButton("🔍 识别")
-        self._btn_re_extract.setStyleSheet(
-            f"QPushButton {{ background: rgba(99,102,241,0.12); color: #818cf8; "
-            f"border: 1px solid rgba(99,102,241,0.3); border-radius: 6px; "
-            f"padding: 4px 10px; font-size: 11px; font-family: {_FONT}; }} "
-            f"QPushButton:hover {{ background: rgba(99,102,241,0.25); }}"
-        )
+        self._btn_re_extract.setObjectName("ExtractBtn")
         self._btn_re_extract.setFixedHeight(30)
         self._btn_re_extract.clicked.connect(self._manual_extract)
         docno_layout.addWidget(self._btn_re_extract)
@@ -270,7 +266,7 @@ class AddEditDialog(QDialog):
             self.selected_file = path
             name = Path(path).name
             self._file_label.setText(name)
-            self._file_label.setStyleSheet(FILE_LABEL_SELECTED_LIGHT)
+            self._file_label.setObjectName("FileLabelSelected")
 
             title_from_file, doc_no_from_file = extract_title_and_doc_no(Path(path).stem)
             if not self._title_edit.text().strip():
@@ -290,7 +286,7 @@ class AddEditDialog(QDialog):
         self._dept_edit.setText(doc.department)
         self._desc_edit.setPlainText(doc.description)
         self._file_label.setText(doc.original_name)
-        self._file_label.setStyleSheet(FILE_LABEL_SELECTED_LIGHT)
+        self._file_label.setObjectName("FileLabelSelected")
 
         for i in range(self._category_combo.count()):
             if self._category_combo.itemData(i) == doc.category_id:

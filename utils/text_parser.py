@@ -38,7 +38,7 @@ def extract_doc_no(text: str) -> str:
     从标题或文件名中智能提取文号。
 
     优先级：
-      1. 「——」分隔符后面的内容
+      1. 「——」「—」「-」分隔符后面的内容
       2. 标准文号正则（已知机构前缀）
       3. 通用文号正则
       4. "令"格式文号
@@ -49,10 +49,17 @@ def extract_doc_no(text: str) -> str:
 
     text = text.strip()
 
-    # ── 规则1：「——」分隔符 ──
-    if "——" in text:
-        parts = text.split("——")
-        candidate = parts[-1].strip()
+    # ── 规则1：「——」「—」「-」分隔符 ──
+    # 按优先级匹配：—— > — > -
+    separator = None
+    for sep in ("——", "—", "-"):
+        if sep in text:
+            separator = sep
+            break
+    if separator:
+        # 取最后一个分隔符后面的内容（避免标题本身含分隔符的情况）
+        idx = text.rfind(separator)
+        candidate = text[idx + len(separator):].strip()
         # 去掉文件扩展名
         candidate = re.sub(r"\.\w+$", "", candidate).strip()
         # 如果分隔符后面的内容看起来像文号（包含数字和"号"，或包含括号年份）
@@ -96,11 +103,18 @@ def extract_title_and_doc_no(text: str) -> Tuple[str, str]:
     # 从原标题中去掉文号部分，得到干净的标题
     title = text.strip()
     if doc_no:
-        # 去掉「——文号」部分
-        if "——" in title:
-            idx = title.rfind("——")
-            title = title[:idx].strip()
-        else:
+        # 去掉「——文号」「—文号」「-文号」部分（按优先级尝试）
+        stripped = False
+        for sep in ("——", "—", "-"):
+            if sep in title:
+                idx = title.rfind(sep)
+                candidate_after = title[idx + len(sep):].strip()
+                candidate_after = re.sub(r"\.\w+$", "", candidate_after).strip()
+                if candidate_after == doc_no:
+                    title = title[:idx].strip()
+                    stripped = True
+                    break
+        if not stripped:
             # 直接去掉文号字符串
             title = title.replace(doc_no, "").strip()
 
@@ -108,6 +122,21 @@ def extract_title_and_doc_no(text: str) -> Tuple[str, str]:
     title = re.sub(r"\.\w+$", "", title).strip()
 
     return title or text.strip(), doc_no
+
+
+def detect_status_from_name(text: str) -> str:
+    """
+    从标题或文件名中检测文档状态。
+    如果包含"已废止"/"废止"/"失效"关键词，返回 "expired"。
+    否则返回 ""（由调用方决定默认值）。
+    """
+    if not text:
+        return ""
+    keywords = ("已废止", "废止", "失效")
+    for kw in keywords:
+        if kw in text:
+            return "expired"
+    return ""
 
 
 # ── 兼容旧接口 ──

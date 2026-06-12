@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
 
         # 搜索栏
         search_bar = QWidget()
-        search_bar.setStyleSheet(SEARCH_BAR_CONTAINER_LIGHT)
+        search_bar.setObjectName("SearchBarContainer")
         search_layout = QHBoxLayout(search_bar)
         search_layout.setContentsMargins(16, 10, 16, 10)
 
@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
         btn_clear = QPushButton("清空")
         btn_clear.setFixedHeight(38)
         btn_clear.setFixedWidth(60)
-        btn_clear.setStyleSheet(DIALOG_BTN_SECONDARY)
+        btn_clear.setObjectName("DialogBtnSecondary")
         btn_clear.clicked.connect(self._on_clear_search)
         search_layout.addWidget(btn_clear)
 
@@ -141,17 +141,17 @@ class MainWindow(QMainWindow):
 
         cards_data = [
             ("📋", "制度总数", str(stats["total_docs"]), "#6366f1"),
-            ("📁", "分类数量", str(stats["total_categories"]), "#34d399"),
-            ("✅", "现行有效", str(stats.get("active_count", 0)), "#60a5fa"),
-            ("📦", "已归档", str(stats.get("archived_count", 0)), "#94a3b8"),
+            ("📁", "分类数量", str(stats["total_categories"]), "#28A745"),
+            ("✅", "现行有效", str(stats.get("active_count", 0)), "#2d5aa0"),
+            ("📦", "已归档", str(stats.get("archived_count", 0)), "#888888"),
         ]
 
         for i, (icon, label, value, color) in enumerate(cards_data):
             card = QFrame()
             card.setStyleSheet(f"""
                 QFrame {{
-                    background-color: #1e293b;
-                    border: 1px solid #334155;
+                    background-color: #ffffff;
+                    border: 1px solid #e0e0e0;
                     border-left: 4px solid {color};
                     border-radius: 8px;
                     padding: 20px;
@@ -169,7 +169,7 @@ class MainWindow(QMainWindow):
             card_layout.addWidget(val_label)
 
             text_label = QLabel(label)
-            text_label.setStyleSheet(f"font-size: 13px; color: #94a3b8; background: transparent; font-family: {_FONT};")
+            text_label.setStyleSheet(f"font-size: 13px; color: #888888; background: transparent; font-family: {_FONT};")
             card_layout.addWidget(text_label)
 
             self._stats_grid.addWidget(card, i // 2, i % 2)
@@ -271,6 +271,7 @@ class MainWindow(QMainWindow):
         self._doc_panel.document_selected.connect(self._on_doc_selected)
         self._doc_panel.document_opened.connect(self._on_doc_opened)
         self._doc_panel.document_deleted.connect(self._on_doc_deleted)
+        self._doc_panel.document_edit_requested.connect(self._on_doc_edit)
         self._doc_panel.page_changed.connect(self._on_page_changed)
         # 批量操作信号
         self._doc_panel.batch_delete_requested.connect(self._on_batch_delete)
@@ -438,6 +439,37 @@ class MainWindow(QMainWindow):
                 self._refresh_list()
             else:
                 Toast.error(self, "删除失败")
+
+    def _on_doc_edit(self, doc_id: int):
+        """编辑文档（弹出编辑对话框）"""
+        doc = document_service.get_document(doc_id)
+        if not doc:
+            Toast.error(self, "文档不存在")
+            return
+        cats = category_service.get_all_categories()
+        dlg = AddEditDialog(cats, doc=doc, parent=self)
+        if dlg.exec():
+            data = dlg.get_data()
+            updated = document_service.update_document(
+                doc_id,
+                title=data["title"],
+                doc_no=data["doc_no"],
+                version_no=data["version_no"],
+                category_id=data["category_id"],
+                status=data["status"],
+                issuing_org=data["issuing_org"],
+                department=data["department"],
+                effective_date=data["effective_date"],
+                expiry_date=data["expiry_date"],
+                description=data["description"],
+                tags=data["tags"],
+            )
+            if updated:
+                Toast.success(self, f"「{updated.title}」已更新")
+                self._refresh_categories()
+                self._refresh_list()
+            else:
+                Toast.error(self, "更新失败")
 
     def _on_page_changed(self, page: int):
         """翻页"""

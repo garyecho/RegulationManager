@@ -1,310 +1,300 @@
 # 制度汇编管理系统 v1.0.2
 
-单机版制度文件集中管理系统，支持分类管理、全文搜索、标签管理、批量导入导出、回收站等功能。
+单机版制度文件集中管理工具，面向金融/企业合规部门，支持分类管理、全文搜索（含正文检索）、批量导入、回收站等功能。
 
-## 功能特性
+## 功能概览
 
-- **制度管理**：新增、编辑、删除（软删除+回收站）、彻底删除
-- **分类目录**：树形分类、右键删除、底部添加、实时刷新
-- **全文搜索**：基于 Whoosh + jieba 中文分词，支持标题、文号、部门、发文机关搜索
-- **标签管理**：多标签关联、颜色标记、按标签筛选
-- **批量操作**：批量导入文件夹、批量移入回收站、批量还原、批量彻底删除
-- **智能解析**：自动提取文号（如"银保监规〔2022〕20号"）
-- **统计看板**：制度总数、分类数量、状态分布等
-- **数据备份**：一键备份/恢复，ZIP 格式
+| 功能 | 说明 |
+|------|------|
+| 制度管理 | 新增、编辑、删除（软删除+回收站）、彻底删除 |
+| 分类目录 | 树形分类结构，右键删除，底部添加 |
+| 全文搜索 | FTS5 + jieba 中文分词，支持标题/文号/正文内容搜索 |
+| 正文提取 | 上传时自动提取 PDF/DOCX 正文，存入数据库供全文检索 |
+| 文号识别 | 自动从文件名提取文号（支持 `——`、`-`、`—` 分隔符） |
+| 废止识别 | 文件名含"已废止"/"废止"/"失效"时自动标记状态 |
+| 批量操作 | 批量导入文件夹、批量删除/还原/彻底删除 |
+| 编辑功能 | 列表每行带编辑按钮，支持修改分类/状态/标题等字段 |
+| 统计看板 | 制度总数、分类数量、状态分布 |
+| 数据备份 | 一键备份/恢复，ZIP 格式 |
+| 样式管理 | 浅色现代企业级 UI，样式集中在 `light.qss` 统一管理 |
+| 打包分发 | 支持 x64/x86 双架构打包，数据使用相对路径，可直接分发 |
 
 ## 支持格式
 
 | 格式 | 说明 |
 |------|------|
-| .doc | Word 97-2003 |
-| .docx | Word 2007+ |
-| .pdf | PDF 文档 |
-
-## 系统要求
-
-- **操作系统**：Windows 7 SP1 / 8 / 10 / 11（32位和64位均可）
-- **运行环境**：无需安装 Python，解压即用
-- **可选依赖**：如提示缺少 VCRUNTIME140.dll，请安装 [Visual C++ Redistributable 2015-2022](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+| `.doc` | Word 97-2003（仅存储，不提取正文） |
+| `.docx` | Word 2007+（存储+正文提取+全文搜索） |
+| `.pdf` | PDF 文档（存储+正文提取+全文搜索） |
 
 ## 目录结构
 
 ```
 RegulationManager/
-├── main.py                    # 程序入口
-├── config.py                  # 全局配置（兼容打包模式）
-├── database/
-│   ├── models.py              # SQLAlchemy ORM 模型
-│   ├── crud.py                # CRUD 操作
-│   └── migrations.py          # 数据库初始化 + FTS5
-├── core/
-│   ├── document_service.py    # 制度业务逻辑
-│   ├── category_service.py    # 分类业务逻辑
-│   ├── search_service.py      # 搜索服务
-│   └── statistics_service.py  # 统计服务
-├── ui/
-│   ├── main_window.py         # 主窗口
-│   ├── sidebar.py             # 左侧边栏（分类树）
-│   ├── document_panel.py      # 文档列表面板
-│   ├── add_edit_dialog.py     # 新增/编辑对话框
-│   ├── styles.py              # 样式常量
+├── main.py                        # 程序入口
+├── config.py                      # 全局配置（路径/数据库/常量）
+│
+├── database/                      # 数据层
+│   ├── models.py                  # SQLAlchemy ORM 模型（Document/Category/Tag）
+│   ├── crud.py                    # CRUD 操作（DocumentCRUD/CategoryCRUD/TagCRUD）
+│   └── migrations.py              # 数据库初始化 + FTS5 索引 + 路径迁移 + 正文补提
+│
+├── core/                          # 业务逻辑层
+│   ├── document_service.py        # 制度生命周期（上传/编辑/删除/搜索/备份）
+│   ├── category_service.py        # 分类 CRUD
+│   ├── search_service.py          # 搜索服务（FTS5 查询）
+│   └── statistics_service.py      # 统计查询
+│
+├── models/                        # 数据传输对象
+│   └── __init__.py                # DocumentData/SearchResult/CategoryData 等 DTO
+│
+├── utils/                         # 工具层（无状态函数）
+│   ├── text_parser.py             # 文号智能提取 + 废止状态识别
+│   ├── text_extractor.py          # PDF/DOCX 正文提取（PyMuPDF/python-docx）
+│   ├── search_engine.py           # FTS5 搜索引擎 + jieba 分词
+│   └── backup_manager.py          # ZIP 备份/恢复
+│
+├── ui/                            # 界面层（PyQt5）
+│   ├── main_window.py             # 主窗口（菜单栏+工具栏+三栏布局）
+│   ├── sidebar.py                 # 左侧边栏（导航+分类树）
+│   ├── document_panel.py          # 文档列表面板（表格/卡片视图+分页）
+│   ├── add_edit_dialog.py         # 新增/编辑对话框
+│   ├── styles.py                  # 样式常量（色板/字号/字体）
 │   └── components/
-│       ├── toast.py           # Toast 提示
-│       ├── card_widget.py     # 卡片组件
-│       └── tag_input.py       # 标签输入框
-├── models/
-│   └── __init__.py            # DTO 数据传输对象
-├── utils/
-│   ├── text_parser.py         # 文号智能提取
-│   ├── search_engine.py       # Whoosh 搜索引擎
-│   └── backup_manager.py      # 备份管理
+│       ├── card_widget.py         # 卡片视图组件
+│       ├── tag_input.py           # 标签输入组件
+│       └── toast.py               # Toast 提示组件
+│
 ├── resources/
 │   └── styles/
-│       ├── dark.qss           # 深色主题
-│       └── light.qss          # 亮色主题
-├── data/
-│   ├── regulation.db          # SQLite 数据库
-│   ├── documents/             # 上传的制度文件
-│   ├── backups/               # 备份文件
-│   └── logs/                  # 运行日志
-├── RegulationManager.spec     # PyInstaller 打包配置（支持 BUILD_ARCH 环境变量）
-├── build.bat                  # 一键双架构打包脚本
-├── setup_x86.bat              # 32位环境搭建脚本（只需运行一次）
-├── venv38/                    # 64位打包虚拟环境
-├── venv38_x86/                # 32位打包虚拟环境
-└── dist_files/
-    ├── README.txt             # 用户使用说明（打包时复制到交付目录）
-    └── backup.txt             # 备份说明
+│       ├── light.qss              # 浅色主题（唯一样式入口）
+│       └── dark.qss               # 深色主题（备用）
+│
+├── data/                          # 运行时数据（不入版本控制）
+│   ├── regulation.db              # SQLite 数据库
+│   ├── documents/                 # 导入的制度文件
+│   ├── backups/                   # 备份文件
+│   └── logs/                      # 运行日志
+│
+├── dist_files/                    # 打包交付文件
+│   ├── README.txt                 # 用户使用说明
+│   └── backup.txt                 # 备份说明
+│
+├── RegulationManager.spec         # PyInstaller 打包配置
+├── build.bat                      # 一键双架构打包脚本
+├── setup_x86.bat                  # 32位环境搭建脚本
+├── pyproject.toml                 # Python 项目配置
+└── .gitignore
 ```
+
+## 架构设计
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   UI 层     │───▶│  Core 层    │───▶│  Utils 层   │───▶│ Database 层 │
+│ PyQt5 界面  │    │ 业务逻辑    │    │ 无状态工具   │    │ SQLAlchemy  │
+│ main_window │    │ document_   │    │ text_parser │    │ models.py   │
+│ sidebar     │    │ service.py  │    │ search_     │    │ crud.py     │
+│ document_   │    │ category_   │    │ engine.py   │    │ migrations  │
+│ panel.py    │    │ service.py  │    │ text_       │    │             │
+└─────────────┘    └─────────────┘    │ extractor   │    └─────────────┘
+                                      └─────────────┘
+```
+
+- **UI 层**：纯界面展示，不直接访问数据库，通过 Core 层调用
+- **Core 层**：业务逻辑，协调 Utils 和 Database
+- **Utils 层**：无状态工具函数，独立可测试
+- **Database 层**：ORM 模型 + CRUD 操作 + 数据库迁移
 
 ## 开发环境
 
-### 依赖
+### 1. 创建虚拟环境
 
-```
-PyQt5
-sqlalchemy
-whoosh
-jieba
-PyMuPDF (fitz)
-python-docx
-pyinstaller
-```
-
-### 安装依赖
-
-```bash
-pip install PyQt5 sqlalchemy whoosh jieba PyMuPDF python-docx pyinstaller
-```
-
-### 运行（开发模式）
-
-```bash
+```powershell
 cd D:\Code\RegulationManager
+python -m venv venv
+.\venv\Scripts\activate
+```
+
+### 2. 安装依赖
+
+```powershell
+pip install PyQt5 SQLAlchemy PyMuPDF python-docx jieba -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn
+```
+
+> PyQt5 支持 Python 3.5-3.11，不支持 3.12+。推荐 Python 3.8 或 3.10。
+
+### 3. 启动
+
+```powershell
 python main.py
 ```
 
-## 打包（PyInstaller）
+程序启动时自动：
+- 创建 SQLite 数据库
+- 建立 FTS5 全文搜索索引
+- 迁移旧的绝对路径为相对路径
+- 为已有文档补提正文内容
 
-### 为什么用 Python 3.8 打包
+## 样式管理
 
-- **Python 3.9+ 不支持 Windows 7**：会报 `api-ms-win-core-path-l1-1-0.dll` 缺失
-- **Python 3.8 是最后一个支持 Windows 7 的版本**
-- 打包后的 exe 内嵌了 Python 运行时，用 3.8 打包就能在 Win7~Win11 全系列运行
+所有样式集中在 `resources/styles/light.qss` 一个文件中管理。
 
-> Python 3.8 已于 2024 年 10 月 EOL，但仅用于打包不影响安全性。
+**禁止**在各 UI 类中使用 `widget.setStyleSheet()` 覆盖全局样式（动态样式除外）。
 
-### 打包步骤
+调整样式时，在 QSS 中搜对应的 `#objectName` 选择器：
 
-#### 1. 安装 Python 3.8（64位 + 32位）
+| 想改这个 | 搜索关键词 |
+|---------|-----------|
+| 侧边栏背景 | `#Sidebar` |
+| 主窗口背景 | `QMainWindow` |
+| 表格内容字号 | `QTableWidget` |
+| 表头字号 | `QHeaderView::section` |
+| 按钮颜色 | `QPushButton` |
+| 输入框 | `QLineEdit` |
+| 选中行 | `::item:selected` |
+| 主色调 | 全局替换 `#0066CC` |
 
-| 架构 | 下载地址 |
-|------|---------|
-| 64位 | https://www.python.org/downloads/release/python-3810/ → "Windows x86-64 executable installer" |
-| 32位 | https://www.python.org/downloads/release/python-3810/ → "Windows x86 executable installer" |
+**色板**：Primary=#0066CC  Accent=#0078D4  Success=#28A745  Danger=#DC3545
 
-安装时**不要勾选** "Add Python 3.8 to PATH"（避免覆盖默认的 Python）。
+## 数据存储
 
-#### 2. 创建虚拟环境
+| 文件 | 说明 | 入版本控制 |
+|------|------|-----------|
+| `data/regulation.db` | SQLite 数据库（制度信息+FTS5索引） | ❌ |
+| `data/documents/` | 导入的制度文件 | ❌ |
+| `data/backups/` | 手动备份 | ❌ |
+| `data/logs/` | 运行日志 | ❌ |
+
+**路径设计**：
+- 数据库中的文件路径存储为**相对路径**（相对于 `data/` 目录）
+- 运行时自动解析为绝对路径
+- 分发时 `data/` 文件夹和 exe 在同一目录即可正常使用
+
+**重要提示**：
+- 定期备份 `data/` 文件夹
+- 不要删除 `regulation.db`，否则所有记录丢失
+- 不要删除 `documents/` 文件夹，否则文件无法打开
+- 迁移系统时，复制整个程序文件夹即可
+
+## 打包部署
+
+### Python 3.8 打包（兼容 Win7~Win11）
+
+Python 3.9+ 不支持 Windows 7，必须用 Python 3.8 打包。
+
+| 架构 | 下载 |
+|------|------|
+| 64位 | https://www.python.org/downloads/release/python-3810/ → Windows x86-64 |
+| 32位 | https://www.python.org/downloads/release/python-3810/ → Windows x86 |
+
+安装时**不要勾选** "Add Python 3.8 to PATH"。
+
+### 打包命令
 
 ```cmd
-cd D:\Code\RegulationManager
-
-# 64位虚拟环境
+:: 创建虚拟环境
 py -3.8 -m venv venv38
-
-# 32位虚拟环境（需要先安装 Python 3.8 32位）
-py -3.8-32 -m venv venv38_x86
-```
-
-也可以直接运行 `setup_x86.bat` 自动完成 32 位环境搭建。
-
-#### 3. 安装依赖
-
-分别在两个 venv 中安装：
-
-```cmd
-# 64位
 call venv38\Scripts\activate
-pip install PyQt5==5.15.11 sqlalchemy whoosh jieba PyMuPDF==1.24.11 python-docx pyinstaller -i http://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn
-deactivate
+pip install PyQt5==5.15.11 sqlalchemy PyMuPDF==1.24.11 python-docx jieba pyinstaller -i http://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn
 
-# 32位
-call venv38_x86\Scripts\activate
-pip install PyQt5==5.15.11 sqlalchemy whoosh jieba PyMuPDF==1.24.11 python-docx pyinstaller -i http://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn
-deactivate
-```
-
-#### 4. 打包
-
-```cmd
-# 同时打包 64位 + 32位
-build.bat
-
-# 只打 64位
-build.bat x64
-
-# 只打 32位
-build.bat x86
+:: 打包
+build.bat          :: 同时打 x64 + x86
+build.bat x64      :: 只打 64位
+build.bat x86      :: 只打 32位
 ```
 
 ### 打包后结构
 
 ```
 dist/
-├── RegulationManager_x64/         # 64位版本
-│   ├── RegulationManager.exe      # 主程序
-│   ├── _internal/                 # PyInstaller 运行时（勿删）
-│   ├── data/                      # 用户数据
+├── RegulationManager_x64/
+│   ├── RegulationManager.exe
+│   ├── _internal/           # PyInstaller 运行时（勿删）
+│   ├── data/                # 用户数据（自动创建）
 │   ├── README.txt
 │   └── backup.txt
-└── RegulationManager_x86/         # 32位版本（Win7 32位专用）
-    ├── RegulationManager.exe
-    ├── _internal/
-    ├── data/
-    ├── README.txt
-    └── backup.txt
+└── RegulationManager_x86/   # Win7 32位专用
+    └── ...
 ```
 
-### 关于虚拟环境（venv）
+### 分发注意事项
 
-```
-系统 Python 3.13：    C:\...\Python313\python.exe       ← 日常开发用
-64位 Python 3.8：     D:\...\venv38\Scripts\python.exe   ← 64位打包
-32位 Python 3.8：     D:\...\venv38_x86\Scripts\python.exe ← 32位打包
-```
-
-- venv 是 Python 的独立副本，有自己的包目录（`venv38\Lib\site-packages\`）
-- 两个 venv 完全隔离，互不影响
-- 打包完成后可删除 `venv38` 和 `venv38_x86` 文件夹
+1. **必须**把 `data/` 文件夹和 exe 一起分发
+2. 数据库中的文件路径已存为相对路径，换电脑可直接使用
+3. 接收者无需重新导入，直接运行即可查看所有制度
 
 ## 使用说明
 
 ### 添加制度
+工具栏「➕ 新增制度」或 `Ctrl+N` → 选择文件 → 自动识别文号/废止状态 → 填写信息 → 保存
 
-1. 点击工具栏「➕ 新增制度」或按 `Ctrl+N`
-2. 选择文件、填写标题、文号、分类等信息
-3. 点击保存
+### 编辑制度
+列表每行右侧「✏ 编辑」按钮 → 修改分类/状态/标题 → 保存
 
 ### 批量导入
-
-1. 点击工具栏「📥 批量导入」
-2. 选择包含制度文件的文件夹
-3. 选择目标分类
-4. 系统自动导入所有 .doc/.docx/.pdf 文件
-
-### 分类管理
-
-- **添加分类**：点击左侧底部「+ 添加分类」
-- **删除分类**：右键分类项 → 删除（文档归入未分类）
+工具栏「📥 批量导入」→ 选择文件夹 → 选择目标分类 → 自动导入
 
 ### 搜索
+顶部搜索栏输入关键词，支持搜索标题、文号、部门、**文档正文内容**
 
-- 在顶部搜索栏输入关键词，支持标题、文号、部门、发文机关搜索
-- 按 `Enter` 或点击「搜索」按钮
+### 分类管理
+- 添加：左侧底部「+ 添加分类」
+- 删除：右键分类项 → 删除（文档归入未分类）
 
-### 备份与恢复
-
-- **备份**：文件 → 备份制度库
-- **恢复**：文件 → 恢复制度库 → 选择 .zip 备份文件
-
-## 数据安全
-
-所有数据存储在 `data/` 文件夹中：
-
-| 文件 | 说明 |
-|------|------|
-| `regulation.db` | 数据库（制度信息、分类、标签） |
-| `documents/` | 上传的制度文件 |
-| `backups/` | 系统备份 |
-| `logs/` | 运行日志 |
-
-**重要提示**：
-
-- 定期备份 `data/` 文件夹
-- 不要删除 `regulation.db`，否则所有记录将丢失
-- 不要删除 `documents/` 文件夹，否则制度文件将无法打开
-- 迁移系统时，复制整个程序文件夹即可
+### 备份恢复
+- 备份：文件 → 备份制度库
+- 恢复：文件 → 恢复制度库 → 选择 .zip 备份文件
 
 ## 技术栈
 
 | 组件 | 技术 |
 |------|------|
-| GUI 框架 | PyQt5 5.15（兼容 Win7~Win11） |
+| GUI | PyQt5 5.15（兼容 Win7~Win11） |
 | 数据库 | SQLite + SQLAlchemy |
-| 全文搜索 | Whoosh + jieba |
-| 文件解析 | PyMuPDF (PDF)、python-docx (Word) |
+| 全文搜索 | SQLite FTS5 + jieba 中文分词 |
+| 正文提取 | PyMuPDF (PDF)、python-docx (DOCX) |
 | 打包 | PyInstaller 6.x (onedir) |
-| 打包 Python | 3.8（兼容 Win7~Win11） |
+| 主题 | 浅色主题 QSS（集中管理） |
 
 ## 常见问题
 
 **Q: 双击 exe 无法启动？**
-A: 确保路径中不含特殊字符，尝试以管理员身份运行。
+确保路径不含特殊字符，尝试以管理员身份运行。
 
 **Q: Win7 提示缺少 VCRUNTIME140.dll？**
-A: 安装 Visual C++ Redistributable 2015-2022 即可。
+安装 [Visual C++ Redistributable 2015-2022](https://aka.ms/vs/17/release/vc_redist.x64.exe)。
 
-**Q: 搜索不到内容？**
-A: 首次导入文件后需要等待索引建立完成，大文件可能需要几秒。
+**Q: 搜索不到正文内容？**
+首次启动会自动补提正文。新上传的文件自动提取。如仍有问题，菜单「工具 → 重建搜索索引」。
 
 **Q: 数据库损坏？**
-A: 用备份文件替换 `data/regulation.db` 即可恢复。
+用 `data/backups/` 中的备份替换 `data/regulation.db`。或删除数据库重启（数据丢失）。
 
-**Q: 如何迁移数据？**
-A: 复制整个程序文件夹（包含 `data/` 目录）到新位置即可。
+**Q: 改了 QSS 不生效？**
+检查对应控件是否有 `widget.setStyleSheet()` 内联样式覆盖了 QSS。用 `setObjectName()` 替代。
+
+**Q: pip 安装报 SSL/proxy 错误？**
+用国内镜像：`pip install ... -i http://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn`
 
 ## 版本历史
 
 ### v1.0.2 (2026-06)
 
-- **双架构打包**：`build.bat` 一键同时产出 x64 和 x86 版本
-- **32位支持**：Win7 32位系统可运行 x86 版本
-- 新增 `setup_x86.bat` 一键搭建 32 位打包环境
-- `RegulationManager.spec` 支持 `BUILD_ARCH` 环境变量动态命名输出目录
-- 代码重构：提取 FTS 触发器/时间戳/文件删除/批量操作等公共函数，消除重复代码
-- 修复 `_current_sort` 未初始化导致的潜在 AttributeError
-- 统计查询从 5 次单状态 COUNT 优化为 1 次 GROUP BY
-- 清理所有未使用的导入（re/shutil/os/QEvent/QObject/QKeyEvent/QMenuBar 等）
+- 浅色主题 UI，样式集中在 `light.qss` 统一管理
+- 编辑功能：列表每行编辑按钮，支持修改分类/状态
+- 正文全文搜索：上传时提取 PDF/DOCX 正文，FTS5 索引
+- 文号识别增强：支持 `——`、`-`、`—` 三种分隔符
+- 废止状态自动识别
+- 文件路径改为相对路径，支持打包分发
+- 双架构打包（x64 + x86）
 
 ### v1.0.1 (2026-06)
 
-- **PyQt6 → PyQt5 迁移**：彻底解决 Windows 7 兼容性问题（Qt 6.0+ 不支持 Win7）
-- 修复 `QFontDatabase.families()` 在 PyQt5 中需实例调用的问题
-- `build.bat` 自动激活 venv38 虚拟环境，避免打包时漏掉第三方库
-- 所有 scoped enum 改为 flat enum（如 `Qt.AlignmentFlag.AlignCenter` → `Qt.AlignCenter`）
-- `QAction` 从 `QtGui` 移回 `QtWidgets`（PyQt5 位置）
+- PyQt6 → PyQt5 迁移（Win7 兼容）
+- build.bat 自动激活 venv
 
 ### v1.0.0 (2026-06)
 
 - 初始版本
-- 制度文件管理（新增、编辑、删除、回收站）
-- 分类目录管理（树形结构、新增、删除）
-- 全文搜索（Whoosh + jieba 中文分词）
-- 标签管理
-- 批量导入导出
-- 统计看板
-- 数据备份/恢复
-- 深色/亮色主题
-- 文号智能提取
-- 兼容 Windows 7 / 8 / 10 / 11
+- 制度管理、分类目录、全文搜索、标签、批量导入、统计看板、备份恢复

@@ -28,14 +28,6 @@ def setup_logging():
     )
 
 
-def load_stylesheet(app: QApplication, theme: str = "light"):
-    """加载 QSS 主题"""
-    qss_path = config.RESOURCES_DIR / "styles" / f"{theme}.qss"
-    if qss_path.exists():
-        with open(qss_path, "r", encoding="utf-8") as f:
-            app.setStyleSheet(f.read())
-
-
 def main():
     """应用主入口"""
     # 日志
@@ -65,7 +57,7 @@ def main():
             break
 
     font = QFont(chosen)
-    font.setPointSize(10)
+    font.setPointSize(16)
     font.setHintingPreference(QFont.PreferFullHinting)
     font.setStyleStrategy(
         QFont.PreferAntialias | QFont.PreferQuality
@@ -79,12 +71,16 @@ def main():
     except AttributeError:
         pass  # Qt 5.14+ 默认启用
 
-    # 加载深色主题
-    load_stylesheet(app, "dark")
-
     # 创建主窗口
     from ui.main_window import MainWindow
     window = MainWindow()
+
+    # 对主窗口集中加载 QSS（不通过 app.setStyleSheet，避免与 widget 样式冲突）
+    qss_path = config.RESOURCES_DIR / "styles" / "light.qss"
+    if qss_path.exists():
+        with open(qss_path, "r", encoding="utf-8") as f:
+            window.setStyleSheet(f.read())
+
     window.show()
 
     logger.info("主窗口已显示")

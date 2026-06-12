@@ -2,6 +2,7 @@
 文档服务
 """
 import os
+from pathlib import Path
 import shutil
 import logging
 from datetime import datetime
@@ -16,6 +17,18 @@ from models import DocumentData, SearchResult
 from utils import file_hash
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_path(file_path: str) -> str:
+    """将数据库中的路径解析为绝对路径（兼容旧的绝对路径和新的相对路径）"""
+    if not file_path:
+        return ""
+    p = Path(file_path)
+    if p.is_absolute():
+        return file_path  # 旧数据：已经是绝对路径
+    # 新数据：相对路径，基于 DATA_DIR 解析
+    resolved = config.DATA_DIR / file_path
+    return str(resolved)
 
 
 def _to_dto(doc) -> DocumentData:
@@ -35,7 +48,7 @@ def _to_dto(doc) -> DocumentData:
         effective_date=doc.effective_date or "",
         expiry_date=doc.expiry_date or "",
         description=doc.description or "",
-        file_path=doc.file_path or "",
+        file_path=_resolve_path(doc.file_path),
         original_name=doc.original_name or "",
         file_type=doc.file_type or "",
         file_size=doc.file_size or 0,
@@ -134,7 +147,8 @@ def get_deleted_documents(page: int = 1,
 def upload_document(file_path: str, title: str, doc_no: str = "",
                     category_id: int = None, department: str = "",
                     issuing_org: str = "", effective_date: str = "",
-                    description: str = "", tags: list = None) -> Optional[DocumentData]:
+                    description: str = "", tags: list = None,
+                    status: str = None) -> Optional[DocumentData]:
     if not file_path or not os.path.exists(file_path):
         return None
 
@@ -147,32 +161,61 @@ def upload_document(file_path: str, title: str, doc_no: str = "",
     dest = config.DOCUMENTS_DIR / dest_name
     shutil.copy2(file_path, dest)
 
+    # 自动识别状态：优先使用传入的 status，否则从标题+文件名检测
+    if not status:
+        from utils.text_parser import detect_status_from_name
+        fname = os.path.splitext(os.path.basename(file_path))[0]
+        status = detect_status_from_name(title) or detect_status_from_name(fname) or "active"
+
+    # 提取文档正文
+    from utils.text_extractor import extract_text
+    content_text = extract_text(str(dest))
+
+    # 存储相对路径（相对于 DATA_DIR），方便打包分发后在其他电脑上使用
+    try:
+        relative_path = str(dest.relative_to(config.DATA_DIR))
+    except ValueError:
+        relative_path = str(dest)
+
     with get_session() as session:
         doc = DocumentCRUD.create(
             session,
             title=title, doc_no=doc_no, category_id=category_id,
             department=department, issuing_org=issuing_org,
             effective_date=effective_date, description=description,
-            file_path=str(dest), original_name=os.path.basename(file_path),
+            file_path=relative_path, original_name=os.path.basename(file_path),
             file_type=ext.lstrip("."), file_hash=h,
             file_size=os.path.getsize(dest), created_by="admin",
-            tags=tags or [],
+            tags=tags or [], status=status,
+            content_text=content_text,
         )
         return _to_dto(doc)
 
 
 def batch_upload(file_paths: list, category_id: int = None) -> dict:
-    from utils.text_parser import extract_title_and_doc_no
+    from utils.text_parser import extract_title_and_doc_no, detect_status_from_name
     result = {"success": 0, "failed": 0, "skipped": 0}
     for fp in file_paths:
         try:
-            title, doc_no = extract_title_and_doc_no(os.path.splitext(os.path.basename(fp))[0])
-            r = upload_document(fp, title=title, doc_no=doc_no, category_id=category_id)
+            stem = os.path.splitext(os.path.basename(fp))[0]
+            title, doc_no = extract_title_and_doc_no(stem)
+            detected_status = detect_status_from_name(title) or detect_status_from_name(stem)
+            r = upload_document(fp, title=title, doc_no=doc_no,
+                                category_id=category_id, status=detected_status or None)
             result["success" if r else "skipped"] += 1
         except Exception as e:
             logger.error(f"导入失败 {fp}: {e}")
             result["failed"] += 1
     return result
+
+
+def update_document(doc_id: int, **kwargs) -> Optional[DocumentData]:
+    """更新文档元数据（分类、状态、标题等），不修改文件"""
+    with get_session() as session:
+        doc = DocumentCRUD.update(session, doc_id, **kwargs)
+        if not doc:
+            return None
+        return _to_dto(doc)
 
 
 # ── 删除/恢复 ──────────────────────────────────────────────

@@ -76,7 +76,7 @@ class Sidebar(QWidget):
         layout.addWidget(sep2)
 
         cat_label = QLabel("  分类目录")
-        cat_label.setStyleSheet(SIDEBAR_CAT_LABEL_LIGHT)
+        cat_label.setObjectName("SidebarCatLabel")
         layout.addWidget(cat_label)
 
         self._tree = QTreeWidget()
@@ -94,11 +94,11 @@ class Sidebar(QWidget):
         layout.addWidget(sep3)
 
         self._stats_label = QLabel("  共 0 项制度")
-        self._stats_label.setStyleSheet(SIDEBAR_STATS_LIGHT)
+        self._stats_label.setObjectName("SidebarStats")
         layout.addWidget(self._stats_label)
 
         btn_add_cat = QPushButton("  + 添加分类")
-        btn_add_cat.setStyleSheet(SIDEBAR_ADD_CAT_BTN)
+        btn_add_cat.setObjectName("SidebarAddCatBtn")
         btn_add_cat.clicked.connect(lambda: self.action_requested.emit("add_category"))
         layout.addWidget(btn_add_cat)
 
