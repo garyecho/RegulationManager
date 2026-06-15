@@ -27,6 +27,13 @@ from models import SearchFilter
 logger = logging.getLogger(__name__)
 
 
+def _flatten_categories(categories):
+    """递归展开分类树"""
+    for cat in categories:
+        yield cat
+        yield from _flatten_categories(cat.children)
+
+
 class MainWindow(QMainWindow):
     """应用主窗口"""
 
@@ -288,7 +295,7 @@ class MainWindow(QMainWindow):
     def _refresh_categories(self):
         """刷新分类树"""
         tree = category_service.get_category_tree()
-        total = document_service.get_document_list(page_size=1).total
+        total = sum(c.doc_count for c in _flatten_categories(tree))
         self._sidebar.load_categories(tree, total)
 
     def _refresh_list(self):

@@ -47,13 +47,6 @@ class CategoryCRUD:
         session.flush()
         return {"success": True, "doc_count": doc_count}
 
-    @staticmethod
-    def get_doc_count(session: Session, cat_id: int) -> int:
-        """获取分类下的文档数"""
-        return session.query(Document).filter(
-            Document.category_id == cat_id, Document.is_deleted == False
-        ).count()
-
 
 class TagCRUD:
     @staticmethod
@@ -141,15 +134,6 @@ class DocumentCRUD:
                 session.add(DocumentTag(document_id=doc_id, tag_id=tag_obj.id))
         session.flush()
         return doc
-
-    @staticmethod
-    def delete(session: Session, doc_id: int) -> bool:
-        doc = session.query(Document).filter(Document.id == doc_id).first()
-        if doc:
-            doc.is_deleted = True
-            session.flush()
-            return True
-        return False
 
     @staticmethod
     def count(session: Session) -> int:

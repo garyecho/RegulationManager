@@ -18,3 +18,7 @@ def parse_doc_filename(name: str) -> tuple:
     from utils.text_parser import extract_title_and_doc_no
     from pathlib import Path
     return extract_title_and_doc_no(Path(name).stem)
+
+
+# Re-export for backward compatibility
+from utils.text_parser import extract_doc_no, detect_status_from_name

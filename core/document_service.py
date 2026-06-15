@@ -189,7 +189,24 @@ def upload_document(file_path: str, title: str, doc_no: str = "",
             tags=tags or [], status=status,
             content_text=content_text,
         )
-        return _to_dto(doc)
+        result = _to_dto(doc)
+
+    # 写入 FTS5 索引（在 session 外执行，避免事务冲突）
+    try:
+        from utils.search_engine import index_document
+        index_document(
+            doc_id=result.id,
+            title=title,
+            doc_no=doc_no or "",
+            department=department or "",
+            issuing_org=issuing_org or "",
+            description=description or "",
+            content_text=content_text or "",
+        )
+    except Exception as e:
+        logger.warning(f"FTS5 索引写入失败（不影响文档保存）: {e}")
+
+    return result
 
 
 def batch_upload(file_paths: list, category_id: int = None) -> dict:
@@ -224,43 +241,109 @@ def delete_document(doc_id: int) -> bool:
     """软删除文档（移入回收站）"""
     now = _now_str()
     with get_session() as session:
-        _disable_fts_triggers(session)
         result = session.execute(
             sql_text("UPDATE documents SET is_deleted=1, updated_at=:now "
                      "WHERE id=:id AND is_deleted=0"),
             {"now": now, "id": doc_id}
         )
-        return result.rowcount > 0
+    # 从 FTS5 索引中移除
+    if result.rowcount > 0:
+        try:
+            from utils.search_engine import remove_from_index
+            remove_from_index(doc_id)
+        except Exception:
+            pass
+    return result.rowcount > 0
 
 
 def restore_document(doc_id: int) -> bool:
     """从回收站恢复文档"""
     now = _now_str()
     with get_session() as session:
-        _disable_fts_triggers(session)
         result = session.execute(
             sql_text("UPDATE documents SET is_deleted=0, updated_at=:now "
                      "WHERE id=:id AND is_deleted=1"),
             {"now": now, "id": doc_id}
         )
-        return result.rowcount > 0
+    # 重新加入 FTS5 索引
+    if result.rowcount > 0:
+        try:
+            _reindex_document(doc_id)
+        except Exception:
+            pass
+    return result.rowcount > 0
+
+
+def _reindex_document(doc_id: int):
+    """重新索引单个文档到 FTS5"""
+    from utils.search_engine import index_document
+    with get_session() as session:
+        doc = DocumentCRUD.get_by_id(session, doc_id)
+        if doc:
+            index_document(
+                doc_id=doc.id,
+                title=doc.title or "",
+                doc_no=doc.doc_no or "",
+                department=doc.department or "",
+                issuing_org=doc.issuing_org or "",
+                description=doc.description or "",
+                content_text=doc.content_text or "",
+            )
 
 
 def permanent_delete(doc_id: int) -> bool:
     """永久删除文档"""
     with get_session() as session:
-        _disable_fts_triggers(session)
         row = session.execute(
             sql_text("SELECT file_path FROM documents WHERE id=:id"), {"id": doc_id}
         ).fetchone()
         if not row:
             return False
-        _delete_file(row[0])
+        _delete_file(_resolve_path(row[0]))
         session.execute(sql_text("DELETE FROM documents WHERE id=:id"), {"id": doc_id})
-        return True
+    # 从 FTS5 索引中移除
+    try:
+        from utils.search_engine import remove_from_index
+        remove_from_index(doc_id)
+    except Exception:
+        pass
+    return True
 
 
 # ── 批量操作 ──────────────────────────────────────────────
+
+def _batch_toggle_deleted(doc_ids: List[int], deleted: bool) -> dict:
+    """批量软删除/还原的统一实现"""
+    success, failed = 0, 0
+    now = _now_str()
+    with get_session() as session:
+        for doc_id in doc_ids:
+            try:
+                result = session.execute(
+                    sql_text("UPDATE documents SET is_deleted=:val, updated_at=:now "
+                             "WHERE id=:id AND is_deleted=:old"),
+                    {"val": int(deleted), "now": now, "id": doc_id, "old": int(not deleted)}
+                )
+                if result.rowcount > 0:
+                    success += 1
+                else:
+                    failed += 1
+            except Exception as e:
+                logger.error(f"批量操作失败 doc_id={doc_id}: {e}")
+                failed += 1
+    # 更新 FTS5 索引
+    if success > 0:
+        try:
+            from utils.search_engine import remove_from_index, index_document
+            for doc_id in doc_ids:
+                if deleted:
+                    remove_from_index(doc_id)
+                else:
+                    _reindex_document(doc_id)
+        except Exception:
+            pass
+    return {"success": success, "failed": failed}
+
 
 def batch_delete(doc_ids: List[int]) -> dict:
     """批量软删除（移入回收站）"""
@@ -276,14 +359,13 @@ def batch_permanent_delete(doc_ids: List[int]) -> dict:
     """批量永久删除"""
     success, failed = 0, 0
     with get_session() as session:
-        _disable_fts_triggers(session)
         for doc_id in doc_ids:
             try:
                 row = session.execute(
                     sql_text("SELECT file_path FROM documents WHERE id=:id"), {"id": doc_id}
                 ).fetchone()
                 if row:
-                    _delete_file(row[0])
+                    _delete_file(_resolve_path(row[0]))
                     session.execute(sql_text("DELETE FROM documents WHERE id=:id"), {"id": doc_id})
                     success += 1
                 else:
@@ -291,4 +373,12 @@ def batch_permanent_delete(doc_ids: List[int]) -> dict:
             except Exception as e:
                 logger.error(f"批量永久删除失败 doc_id={doc_id}: {e}")
                 failed += 1
+    # 从 FTS5 索引中移除
+    if success > 0:
+        try:
+            from utils.search_engine import remove_from_index
+            for doc_id in doc_ids:
+                remove_from_index(doc_id)
+        except Exception:
+            pass
     return {"success": success, "failed": failed}
