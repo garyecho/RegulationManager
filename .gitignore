@@ -1,10 +1,42 @@
-# Python-generated files
+# Python
 __pycache__/
-*.py[oc]
-build/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
 dist/
+build/
 wheels/
-*.egg-info
 
 # Virtual environments
-.venv
+.venv/
+venv/
+venv38/
+venv38_x86/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# PyInstaller
+*.spec.bak
+
+# Runtime data
+data/documents/
+data/backups/
+data/logs/
+data/*.db
+
+# Logs
+*.log
+
+# Backup files
+*.zip
