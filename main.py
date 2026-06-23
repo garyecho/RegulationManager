@@ -29,15 +29,33 @@ def setup_logging():
 
 
 def main():
-    """应用主入口"""
-    # 日志
-    setup_logging()
+    # 日志配置
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[
+            logging.FileHandler(config.LOG_FILE, encoding="utf-8"),
+            logging.StreamHandler(),
+        ]
+    )
     logger = logging.getLogger(__name__)
     logger.info(f"启动 {config.APP_NAME} v{config.APP_VERSION}")
+
+    # 抑制 Qt 剪贴板警告（WSL 环境下常见）
+    import os
+    os.environ["QT_LOGGING_RULES"] = "qt.qpa.mime=false"
 
     # 初始化数据库
     from database.migrations import init_database
     init_database()
+
+    # 高 DPI 支持 (必须在 QApplication 创建之前设置)
+    import PyQt5.QtCore as QtCore
+    try:
+        QtCore.QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+        QtCore.QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    except AttributeError:
+        pass  # Qt 5.14+ 默认启用
 
     # 创建应用
     app = QApplication(sys.argv)
@@ -64,22 +82,24 @@ def main():
     )
     app.setFont(font)
 
-    # 高 DPI 支持 (Qt5 通过属性启用)
-    try:
-        app.setAttribute(Qt.AA_EnableHighDpiScaling)
-        app.setAttribute(Qt.AA_UseHighDpiPixmaps)
-    except AttributeError:
-        pass  # Qt 5.14+ 默认启用
+    # 应用用户保存的字体大小设置
+    from ui.settings_dialog import get_font_size
+    saved_size = get_font_size()
+    font.setPointSize(saved_size)
+    app.setFont(font)
 
     # 创建主窗口
     from ui.main_window import MainWindow
     window = MainWindow()
 
-    # 对主窗口集中加载 QSS（不通过 app.setStyleSheet，避免与 widget 样式冲突）
+    # 对主窗口集中加载 QSS（动态替换字体大小）
     qss_path = config.RESOURCES_DIR / "styles" / "light.qss"
     if qss_path.exists():
         with open(qss_path, "r", encoding="utf-8") as f:
-            window.setStyleSheet(f.read())
+            qss_content = f.read()
+        # 替换 QSS 中的字体大小为用户设置值
+        qss_content = qss_content.replace("16px", f"{saved_size}px")
+        window.setStyleSheet(qss_content)
 
     window.show()
 

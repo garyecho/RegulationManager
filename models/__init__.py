@@ -39,6 +39,7 @@ class DocumentData:
     tags: List[str] = field(default_factory=list)
     created_at: str = ""
     updated_at: str = ""
+    snippet: str = ""  # 搜索结果摘要
 
 
 @dataclass

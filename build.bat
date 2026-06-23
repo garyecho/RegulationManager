@@ -61,13 +61,21 @@ if !BUILD_X64!==1 (
         exit /b 1
     )
 
-    echo [x64] Preparing delivery ...
-    mkdir "dist\RegulationManager_x64\data\documents" 2>nul
-    mkdir "dist\RegulationManager_x64\data\backups" 2>nul
-    mkdir "dist\RegulationManager_x64\data\logs" 2>nul
-    copy /y "dist_files\README.txt" "dist\RegulationManager_x64\README.txt" >nul
-    copy /y "dist_files\backup.txt" "dist\RegulationManager_x64\backup.txt" >nul
-    echo [x64] DONE
+echo [x64] Preparing delivery ...
+mkdir "dist\RegulationManager_x64\data\documents" 2>nul
+mkdir "dist\RegulationManager_x64\data\backups" 2>nul
+mkdir "dist\RegulationManager_x64\data\logs" 2>nul
+copy /y "dist_files\README.txt" "dist\RegulationManager_x64\README.txt" >nul
+copy /y "dist_files\backup.txt" "dist\RegulationManager_x64\backup.txt" >nul
+
+REM 清理不必要的 Qt 文件，减小体积
+echo [x64] Cleaning unnecessary Qt files ...
+if exist "dist\RegulationManager_x64\_internal\PyQt5\Qt5\qml" rmdir /s /q "dist\RegulationManager_x64\_internal\PyQt5\Qt5\qml"
+if exist "dist\RegulationManager_x64\_internal\PyQt5\Qt5\translations" rmdir /s /q "dist\RegulationManager_x64\_internal\PyQt5\Qt5\translations"
+if exist "dist\RegulationManager_x64\_internal\PyQt5\Qt5\qsci" rmdir /s /q "dist\RegulationManager_x64\_internal\PyQt5\Qt5\qsci"
+if exist "dist\RegulationManager_x64\_internal\PyQt5\Qt5\bin\QtWebEngineProcess.exe" del /q "dist\RegulationManager_x64\_internal\PyQt5\Qt5\bin\QtWebEngineProcess.exe"
+
+echo [x64] DONE
 )
 
 REM ==========================================
@@ -102,13 +110,21 @@ if !BUILD_X86!==1 (
         exit /b 1
     )
 
-    echo [x86] Preparing delivery ...
-    mkdir "dist\RegulationManager_x86\data\documents" 2>nul
-    mkdir "dist\RegulationManager_x86\data\backups" 2>nul
-    mkdir "dist\RegulationManager_x86\data\logs" 2>nul
-    copy /y "dist_files\README.txt" "dist\RegulationManager_x86\README.txt" >nul
-    copy /y "dist_files\backup.txt" "dist\RegulationManager_x86\backup.txt" >nul
-    echo [x86] DONE
+echo [x86] Preparing delivery ...
+mkdir "dist\RegulationManager_x86\data\documents" 2>nul
+mkdir "dist\RegulationManager_x86\data\backups" 2>nul
+mkdir "dist\RegulationManager_x86\data\logs" 2>nul
+copy /y "dist_files\README.txt" "dist\RegulationManager_x86\README.txt" >nul
+copy /y "dist_files\backup.txt" "dist\RegulationManager_x86\backup.txt" >nul
+
+REM 清理不必要的 Qt 文件，减小体积
+echo [x86] Cleaning unnecessary Qt files ...
+if exist "dist\RegulationManager_x86\_internal\PyQt5\Qt5\qml" rmdir /s /q "dist\RegulationManager_x86\_internal\PyQt5\Qt5\qml"
+if exist "dist\RegulationManager_x86\_internal\PyQt5\Qt5\translations" rmdir /s /q "dist\RegulationManager_x86\_internal\PyQt5\Qt5\translations"
+if exist "dist\RegulationManager_x86\_internal\PyQt5\Qt5\qsci" rmdir /s /q "dist\RegulationManager_x86\_internal\PyQt5\Qt5\qsci"
+if exist "dist\RegulationManager_x86\_internal\PyQt5\Qt5\bin\QtWebEngineProcess.exe" del /q "dist\RegulationManager_x86\_internal\PyQt5\Qt5\bin\QtWebEngineProcess.exe"
+
+echo [x86] DONE
 )
 
 echo.

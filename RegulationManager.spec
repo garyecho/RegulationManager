@@ -1,13 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
 RegulationManager PyInstaller Spec (PyQt5 + Win7 compatible)
-支持通过环境变量 BUILD_ARCH 控制输出目录名：
-  BUILD_ARCH=x64 → dist/RegulationManager_x64/
-  BUILD_ARCH=x86 → dist/RegulationManager_x86/
-  未设置          → dist/RegulationManager/
 """
 import os
-from PyInstaller.utils.hooks import collect_submodules, collect_data_files
+import sys
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files, collect_dynamic_libs
 
 block_cipher = None
 
@@ -18,7 +15,6 @@ OUTPUT_NAME = f"RegulationManager_{BUILD_ARCH}" if BUILD_ARCH else "RegulationMa
 # ── Hidden imports ──
 hidden_imports = []
 hidden_imports += collect_submodules('PyQt5')
-hidden_imports += collect_submodules('whoosh')
 hidden_imports += collect_submodules('jieba')
 hidden_imports += collect_submodules('fitz')
 hidden_imports += collect_submodules('docx')
@@ -26,32 +22,53 @@ hidden_imports += collect_submodules('sqlalchemy')
 
 hidden_imports += [
     'PyQt5.sip',
+    'PyQt5.QtWidgets',
+    'PyQt5.QtGui',
+    'PyQt5.QtCore',
+    'PyQt5.Qt',
     'sqlite3',
     'encodings',
     'codecs',
 ]
 
-# ── Data files ──
+# ── Data files + Qt 插件 ──
 datas = []
 datas += collect_data_files('jieba')
+
+# 收集 Qt 插件（关键！包含 platforms、styles、imageformats 等）
+datas += collect_data_files('PyQt5', include_py_files=False)
 
 if os.path.exists('resources'):
     datas.append(('resources', 'resources'))
 
+# ── Binaries（Qt 动态库）──
+binaries = []
+binaries += collect_dynamic_libs('PyQt5')
+
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
     hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=['pyi_rth_qt5.py'],
     excludes=[
         'matplotlib', 'numpy', 'scipy', 'pandas',
         'tkinter', 'PyQt6', 'PIL', 'cv2',
         'IPython', 'jupyter', 'notebook',
         'setuptools', 'pip', 'wheel',
+        # 排除不需要的 Qt 模块
+        'PyQt5.QtQml', 'PyQt5.QtQuick', 'PyQt5.QtQuickWidgets',
+        'PyQt5.Qt3D', 'PyQt5.QtBluetooth', 'PyQt5.QtMultimedia',
+        'PyQt5.QtMultimediaWidgets', 'PyQt5.QtNfc', 'PyQt5.QtPositioning',
+        'PyQt5.QtLocation', 'PyQt5.QtSensors', 'PyQt5.QtSerialPort',
+        'PyQt5.QtWebChannel', 'PyQt5.QtWebEngine', 'PyQt5.QtWebEngineCore',
+        'PyQt5.QtWebEngineWidgets', 'PyQt5.QtWebSockets',
+        'PyQt5.QtHelp', 'PyQt5.QtTest', 'PyQt5.QtDesigner',
+        'PyQt5.QtSvg', 'PyQt5.QtXml', 'PyQt5.QtXmlPatterns',
+        'PyQt5.QtOpenGL', 'PyQt5.QtSql',
     ],
     noarchive=False,
     cipher=block_cipher,

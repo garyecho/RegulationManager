@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
 
         btn_clear = QPushButton("清空")
         btn_clear.setFixedHeight(38)
-        btn_clear.setFixedWidth(60)
+        btn_clear.setMinimumWidth(70)
         btn_clear.setObjectName("DialogBtnSecondary")
         btn_clear.clicked.connect(self._on_clear_search)
         search_layout.addWidget(btn_clear)
@@ -352,9 +352,11 @@ class MainWindow(QMainWindow):
         else:
             self._current_category_id = cat_id
             self._current_view = "list"
-            cats = category_service.get_all_categories()
-            cat_name = next((c.name for c in cats if c.id == cat_id), "分类")
-            self._doc_panel.set_title(cat_name)
+            # 直接从分类树中查找名称，避免额外 DB 查询
+            cat = next((c for c in _flatten_categories(
+                category_service.get_category_tree()
+            ) if c.id == cat_id), None)
+            self._doc_panel.set_title(cat.name if cat else "分类")
 
         self._refresh_list()
 
@@ -409,7 +411,7 @@ class MainWindow(QMainWindow):
             category_id=self._current_category_id,
         )
         result = search_service.search(f)
-        self._doc_panel.load_result(result)
+        self._doc_panel.load_result(result, keyword=keyword)
         self._doc_panel.set_title(f"搜索: {keyword}")
         self._statusbar.showMessage(f"找到 {result.total} 条结果")
 
@@ -658,6 +660,7 @@ class MainWindow(QMainWindow):
         dlg = QDialog(self)
         dlg.setWindowTitle("批量导入 — 选择分类")
         dlg.setMinimumWidth(400)
+        dlg.setWindowFlags(dlg.windowFlags() | Qt.WindowStaysOnTopHint)
         dlg_layout = QVBoxLayout(dlg)
         dlg_layout.setContentsMargins(24, 24, 24, 24)
         dlg_layout.setSpacing(16)
@@ -669,6 +672,7 @@ class MainWindow(QMainWindow):
         form = QFormLayout()
         form.setLabelAlignment(Qt.AlignRight)
         cat_combo = QComboBox()
+        cat_combo.setMinimumWidth(200)
         cats = category_service.get_all_categories()
         for cat in cats:
             cat_combo.addItem(cat.name, cat.id)
@@ -734,10 +738,54 @@ class MainWindow(QMainWindow):
                     Toast.error(self, "恢复失败")
 
     def _rebuild_index(self):
-        """重建搜索索引"""
-        from utils import search_engine
-        search_engine.rebuild_index()
-        Toast.success(self, "搜索索引已重建")
+        """重建搜索索引（带进度条）"""
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
+        from PyQt5.QtCore import QThread, pyqtSignal
+
+        class RebuildWorker(QThread):
+            progress = pyqtSignal(int, int, str)
+            finished = pyqtSignal()
+            error = pyqtSignal(str)
+
+            def run(self):
+                try:
+                    from utils import search_engine
+                    def progress_callback(current, total, message):
+                        self.progress.emit(current, total, message)
+                    search_engine.rebuild_index(progress_callback=progress_callback)
+                    self.finished.emit()
+                except Exception as e:
+                    self.error.emit(str(e))
+
+        # 创建进度对话框
+        dlg = QDialog(self)
+        dlg.setWindowTitle("重建搜索索引")
+        dlg.setFixedSize(400, 120)
+        dlg.setWindowFlags(dlg.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        status_label = QLabel("正在准备...")
+        layout.addWidget(status_label)
+
+        progress_bar = QProgressBar()
+        progress_bar.setRange(0, 100)
+        layout.addWidget(progress_bar)
+
+        # 启动后台线程
+        worker = RebuildWorker()
+        worker.progress.connect(lambda cur, total, msg: (
+            progress_bar.setValue(int(cur / total * 100) if total > 0 else 0),
+            status_label.setText(msg)
+        ))
+        worker.finished.connect(lambda: (Toast.success(self, "搜索索引已重建"), dlg.accept()))
+        worker.error.connect(lambda e: (Toast.error(self, f"重建失败: {e}"), dlg.reject()))
+
+        dlg.show()
+        worker.start()
+
+        # 保持对话框打开直到完成
+        dlg.exec()
 
     def _toggle_theme(self):
         """切换主题"""
@@ -745,7 +793,9 @@ class MainWindow(QMainWindow):
 
     def _on_settings(self):
         """系统设置"""
-        Toast.info(self, "系统设置功能开发中")
+        from ui.settings_dialog import SettingsDialog
+        dlg = SettingsDialog(self)
+        dlg.exec()
 
     def _on_about(self):
         """关于"""

@@ -67,44 +67,6 @@ def _now_str() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
 
 
-def _disable_fts_triggers(session):
-    """临时禁用 FTS 触发器，防止 raw SQL 操作触发 FTS 写入异常"""
-    for trig in ("documents_au", "documents_ai", "documents_ad"):
-        session.execute(sql_text(f"DROP TRIGGER IF EXISTS {trig}"))
-
-
-def _delete_file(path: str):
-    """安全删除物理文件"""
-    if path and os.path.exists(path):
-        try:
-            os.remove(path)
-        except OSError as e:
-            logger.warning(f"删除文件失败 {path}: {e}")
-
-
-def _batch_toggle_deleted(doc_ids: List[int], deleted: bool) -> dict:
-    """批量软删除/还原的统一实现"""
-    success, failed = 0, 0
-    now = _now_str()
-    with get_session() as session:
-        _disable_fts_triggers(session)
-        for doc_id in doc_ids:
-            try:
-                result = session.execute(
-                    sql_text("UPDATE documents SET is_deleted=:val, updated_at=:now "
-                             "WHERE id=:id AND is_deleted=:old"),
-                    {"val": int(deleted), "now": now, "id": doc_id, "old": int(not deleted)}
-                )
-                if result.rowcount > 0:
-                    success += 1
-                else:
-                    failed += 1
-            except Exception as e:
-                logger.error(f"批量操作失败 doc_id={doc_id}: {e}")
-                failed += 1
-    return {"success": success, "failed": failed}
-
-
 # ── 查询 ──────────────────────────────────────────────────
 
 def get_document_list(category_id: int = None, page: int = 1,

@@ -3,6 +3,7 @@
 三种模式：manage（管理）、browse（浏览）、recycle（回收站）
 """
 from typing import List, Optional, Set
+import re
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
@@ -28,6 +29,15 @@ MODE_BROWSE = "browse"    # 最近使用
 MODE_RECYCLE = "recycle"  # 回收站
 
 
+class ClickableLabel(QLabel):
+    """可双击的标签，转发双击事件到父表格"""
+    double_clicked = pyqtSignal()
+
+    def mouseDoubleClickEvent(self, event):
+        self.double_clicked.emit()
+        super().mouseDoubleClickEvent(event)
+
+
 class DocumentPanel(QWidget):
 
     document_selected = pyqtSignal(int)
@@ -49,7 +59,23 @@ class DocumentPanel(QWidget):
         self._documents: List[DocumentData] = []
         self._checked_ids: Set[int] = set()
         self._current_sort: str = "updated_at"
+        self._search_keyword: str = ""
         self._setup_ui()
+
+    def _highlight(self, text: str) -> str:
+        """将关键词用黄色背景高亮显示"""
+        if not self._search_keyword or not text:
+            return text
+        # 转义 HTML 特殊字符
+        escaped_text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        escaped_kw = self._search_keyword.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        # 替换关键词为黄色背景高亮标签
+        pattern = re.compile(re.escape(escaped_kw), re.IGNORECASE)
+        highlighted = pattern.sub(
+            f'<span style="background-color:#FFEB3B;color:#333;padding:1px 3px;border-radius:2px">{escaped_kw}</span>',
+            escaped_text
+        )
+        return highlighted
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -212,22 +238,31 @@ class DocumentPanel(QWidget):
         )
         header = table.horizontalHeader()
         header.setStretchLastSection(False)
+
+        # 根据字体大小动态设置列宽
+        from ui.settings_dialog import get_font_size
+        cur_size = get_font_size()
+        checkbox_width = max(40, cur_size * 2 + 10)
+        status_width = max(90, cur_size * 6 + 10)
+        action_width = max(90, cur_size * 5 + 20)
+
         header.setSectionResizeMode(0, QHeaderView.Fixed)
-        table.setColumnWidth(0, 40)
+        table.setColumnWidth(0, checkbox_width)
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(4, QHeaderView.Fixed)
-        table.setColumnWidth(4, 110)
+        table.setColumnWidth(4, status_width)
         header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(6, QHeaderView.Fixed)
-        table.setColumnWidth(6, 100)
+        table.setColumnWidth(6, action_width)
         table.setSelectionBehavior(QAbstractItemView.SelectRows)
         table.setSelectionMode(QAbstractItemView.SingleSelection)
         table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         table.setAlternatingRowColors(True)
         table.verticalHeader().setVisible(False)
-        table.verticalHeader().setDefaultSectionSize(42)
+        # 根据字体大小动态设置行高（需要容纳标题+摘要两行）
+        table.verticalHeader().setDefaultSectionSize(max(60, cur_size * 4 + 20))
         table.setShowGrid(False)
         table.itemClicked.connect(self._on_table_clicked)
         table.itemDoubleClicked.connect(self._on_table_double_clicked)
@@ -379,11 +414,29 @@ class DocumentPanel(QWidget):
     def set_title(self, title: str):
         self._title_label.setText(title)
 
-    def load_result(self, result: SearchResult):
+    def refresh_row_height(self):
+        """刷新表格行高和列宽（字体大小变化后调用）"""
+        from ui.settings_dialog import get_font_size
+        cur_size = get_font_size()
+        new_height = max(60, cur_size * 4 + 20)
+        checkbox_width = max(40, cur_size * 2 + 10)
+        status_width = max(90, cur_size * 6 + 10)
+        action_width = max(90, cur_size * 5 + 20)
+
+        self._table.verticalHeader().setDefaultSectionSize(new_height)
+        self._table.setColumnWidth(0, checkbox_width)
+        self._table.setColumnWidth(4, status_width)
+        self._table.setColumnWidth(6, action_width)
+        # 刷新当前显示
+        if self._documents:
+            self._update_table()
+
+    def load_result(self, result: SearchResult, keyword: str = ""):
         self._documents = result.documents
         self._current_page = result.page
         self._total_pages = result.total_pages
         self._count_label.setText(f"{result.total} 项")
+        self._search_keyword = keyword
         # 清空勾选
         self._checked_ids.clear()
         self._select_all_cb.blockSignals(True)
@@ -405,6 +458,11 @@ class DocumentPanel(QWidget):
         table.setRowCount(len(self._documents))
         table.blockSignals(True)
 
+        # 获取字体大小（只调用一次）
+        from ui.settings_dialog import get_font_size
+        cur_size = get_font_size()
+        snippet_size = max(11, cur_size - 3)
+
         for row, doc in enumerate(self._documents):
             # 复选框列
             cb = QCheckBox()
@@ -419,8 +477,22 @@ class DocumentPanel(QWidget):
                 lambda state, did=doc.id: self._on_checkbox_changed(state, did)
             )
 
-            # 数据列
-            table.setItem(row, 1, QTableWidgetItem(doc.title))
+            # 标题列（包含搜索摘要，关键词高亮）
+            if doc.snippet:
+                title_html = f"<div style='margin:2px 0'>{self._highlight(doc.title)}</div><div style='color:#888;font-size:{snippet_size}px'>{self._highlight(doc.snippet)}</div>"
+            else:
+                title_html = f"<div>{self._highlight(doc.title)}</div>"
+
+            title_label = ClickableLabel()
+            title_label.setTextFormat(Qt.RichText)
+            title_label.setText(title_html)
+            title_label.setWordWrap(True)
+            title_label.setStyleSheet(f"padding: 4px 8px; font-size: {cur_size}px;")
+            title_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            # 双击标题打开文档
+            doc_id = doc.id
+            title_label.double_clicked.connect(lambda did=doc_id: self.document_opened.emit(did))
+            table.setCellWidget(row, 1, title_label)
             table.setItem(row, 2, QTableWidgetItem(doc.doc_no))
             table.setItem(row, 3, QTableWidgetItem(doc.category_name))
 
@@ -464,7 +536,7 @@ class DocumentPanel(QWidget):
                 item.widget().deleteLater()
         cols = max(1, (self._card_scroll.width() - 32) // 300)
         for i, doc in enumerate(self._documents):
-            card = DocumentCard(doc)
+            card = DocumentCard(doc, keyword=self._search_keyword)
             card.clicked.connect(lambda doc_id=doc.id: self.document_selected.emit(doc_id))
             card.double_clicked.connect(lambda doc_id=doc.id: self.document_opened.emit(doc_id))
             row, col = divmod(i, cols)

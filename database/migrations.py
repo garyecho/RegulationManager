@@ -84,7 +84,7 @@ def _migrate_paths():
         logger.warning(f"路径迁移失败（不影响正常使用）: {e}")
 
 
-def _extract_missing_text():
+def _extract_missing_text(progress_callback=None):
     """补提已有文档的正文"""
     from database import get_session
     from database.models import Document
@@ -95,8 +95,9 @@ def _extract_missing_text():
                 Document.is_deleted == False,
                 (Document.content_text == None) | (Document.content_text == "")
             ).all()
+            total = len(docs_needing_text)
             extracted = 0
-            for doc in docs_needing_text:
+            for i, doc in enumerate(docs_needing_text):
                 # 解析路径
                 if doc.file_path:
                     if os.path.isabs(doc.file_path):
@@ -109,6 +110,8 @@ def _extract_missing_text():
                         if body_text:
                             doc.content_text = body_text
                             extracted += 1
+                if progress_callback:
+                    progress_callback(i + 1, total, f"提取正文: {doc.title[:20] if doc.title else '文档'}")
             if extracted > 0:
                 session.flush()
                 logger.info(f"已为 {extracted} 个文档补提正文")
