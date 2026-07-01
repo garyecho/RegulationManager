@@ -45,6 +45,7 @@ class MainWindow(QMainWindow):
 
         self._current_category_id: Optional[int] = None
         self._current_view = "list"  # list / recent / recycle / stats
+        self._category_tree_cache: list = []  # 缓存分类树
         self._setup_ui()
         self._setup_menu()
         self._setup_toolbar()
@@ -294,9 +295,9 @@ class MainWindow(QMainWindow):
 
     def _refresh_categories(self):
         """刷新分类树"""
-        tree = category_service.get_category_tree()
-        total = sum(c.doc_count for c in _flatten_categories(tree))
-        self._sidebar.load_categories(tree, total)
+        self._category_tree_cache = category_service.get_category_tree()
+        total = sum(c.doc_count for c in _flatten_categories(self._category_tree_cache))
+        self._sidebar.load_categories(self._category_tree_cache, total)
 
     def _refresh_list(self):
         """刷新文档列表"""
@@ -352,10 +353,9 @@ class MainWindow(QMainWindow):
         else:
             self._current_category_id = cat_id
             self._current_view = "list"
-            # 直接从分类树中查找名称，避免额外 DB 查询
-            cat = next((c for c in _flatten_categories(
-                category_service.get_category_tree()
-            ) if c.id == cat_id), None)
+            # 从缓存中查找分类名，避免额外 DB 查询
+            cat = next((c for c in _flatten_categories(self._category_tree_cache)
+                        if c.id == cat_id), None)
             self._doc_panel.set_title(cat.name if cat else "分类")
 
         self._refresh_list()
@@ -428,7 +428,11 @@ class MainWindow(QMainWindow):
         """打开文档（双击）"""
         doc = document_service.get_document(doc_id)
         if doc and doc.file_path:
-            os.startfile(doc.file_path) if os.name == 'nt' else os.system(f'xdg-open "{doc.file_path}"')
+            from PyQt5.QtGui import QDesktopServices
+            from PyQt5.QtCore import QUrl
+            # 使用 QDesktopServices 安全打开文件，避免命令注入
+            file_url = QUrl.fromLocalFile(doc.file_path)
+            QDesktopServices.openUrl(file_url)
             self._statusbar.showMessage(f"已打开: {doc.title}")
 
     def _on_doc_deleted(self, doc_id: int):
@@ -751,9 +755,13 @@ class MainWindow(QMainWindow):
                 try:
                     from utils import search_engine
                     def progress_callback(current, total, message):
+                        # 检查是否被中断
+                        if self.isInterruptionRequested():
+                            return
                         self.progress.emit(current, total, message)
                     search_engine.rebuild_index(progress_callback=progress_callback)
-                    self.finished.emit()
+                    if not self.isInterruptionRequested():
+                        self.finished.emit()
                 except Exception as e:
                     self.error.emit(str(e))
 
@@ -778,13 +786,27 @@ class MainWindow(QMainWindow):
             progress_bar.setValue(int(cur / total * 100) if total > 0 else 0),
             status_label.setText(msg)
         ))
-        worker.finished.connect(lambda: (Toast.success(self, "搜索索引已重建"), dlg.accept()))
-        worker.error.connect(lambda e: (Toast.error(self, f"重建失败: {e}"), dlg.reject()))
 
-        dlg.show()
+        def on_finished():
+            Toast.success(self, "搜索索引已重建")
+            dlg.accept()
+
+        def on_error(e):
+            Toast.error(self, f"重建失败: {e}")
+            dlg.reject()
+
+        worker.finished.connect(on_finished)
+        worker.error.connect(on_error)
+
+        # 对话框关闭时终止线程
+        def on_dialog_close():
+            if worker.isRunning():
+                worker.requestInterruption()
+                worker.wait(3000)  # 等待最多3秒
+
+        dlg.finished.connect(on_dialog_close)
+
         worker.start()
-
-        # 保持对话框打开直到完成
         dlg.exec()
 
     def _toggle_theme(self):

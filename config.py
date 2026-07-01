@@ -33,7 +33,7 @@ for d in [DATA_DIR, DOCUMENTS_DIR, BACKUPS_DIR, LOG_DIR]:
 
 # ── 应用信息 ──
 APP_NAME = "制度汇编管理系统"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 
 # ── 数据库 ──
 DB_PATH = DATA_DIR / "regulation.db"
@@ -56,3 +56,6 @@ DOC_STATUS_LABELS = {
 
 # ── 分页 ──
 DEFAULT_PAGE_SIZE = 20
+
+# ── 搜索 ──
+MAX_CONTENT_INDEX_LEN = 100000  # FTS5 索引截取的最大正文长度

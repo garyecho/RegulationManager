@@ -33,7 +33,10 @@ def _resolve_path(file_path: str) -> str:
 
 def _to_dto(doc) -> DocumentData:
     """ORM Document -> DocumentData DTO"""
-    tag_names = [assoc.tag.name for assoc in doc.tag_associations if assoc.tag]         if doc.tag_associations else []
+    tag_names = (
+        [assoc.tag.name for assoc in doc.tag_associations if assoc.tag]
+        if doc.tag_associations else []
+    )
 
     return DocumentData(
         id=doc.id,
@@ -213,8 +216,8 @@ def delete_document(doc_id: int) -> bool:
         try:
             from utils.search_engine import remove_from_index
             remove_from_index(doc_id)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"FTS5 索引移除失败 doc_id={doc_id}: {e}")
     return result.rowcount > 0
 
 
@@ -231,8 +234,8 @@ def restore_document(doc_id: int) -> bool:
     if result.rowcount > 0:
         try:
             _reindex_document(doc_id)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"FTS5 索引恢复失败 doc_id={doc_id}: {e}")
     return result.rowcount > 0
 
 
@@ -267,8 +270,8 @@ def permanent_delete(doc_id: int) -> bool:
     try:
         from utils.search_engine import remove_from_index
         remove_from_index(doc_id)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"FTS5 索引移除失败 doc_id={doc_id}: {e}")
     return True
 
 
@@ -295,15 +298,15 @@ def _batch_toggle_deleted(doc_ids: List[int], deleted: bool) -> dict:
                 failed += 1
     # 更新 FTS5 索引
     if success > 0:
-        try:
-            from utils.search_engine import remove_from_index, index_document
-            for doc_id in doc_ids:
+        from utils.search_engine import remove_from_index
+        for doc_id in doc_ids:
+            try:
                 if deleted:
                     remove_from_index(doc_id)
                 else:
                     _reindex_document(doc_id)
-        except Exception:
-            pass
+            except Exception as e:
+                logger.debug(f"FTS5 索引更新失败 doc_id={doc_id}: {e}")
     return {"success": success, "failed": failed}
 
 
@@ -337,10 +340,10 @@ def batch_permanent_delete(doc_ids: List[int]) -> dict:
                 failed += 1
     # 从 FTS5 索引中移除
     if success > 0:
-        try:
-            from utils.search_engine import remove_from_index
-            for doc_id in doc_ids:
+        from utils.search_engine import remove_from_index
+        for doc_id in doc_ids:
+            try:
                 remove_from_index(doc_id)
-        except Exception:
-            pass
+            except Exception as e:
+                logger.debug(f"FTS5 索引移除失败 doc_id={doc_id}: {e}")
     return {"success": success, "failed": failed}

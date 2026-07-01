@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from models import DocumentData, CategoryData
+from config import DOC_STATUS_LABELS
 from ui.components.tag_input import TagInput
 from ui.styles import FILE_LABEL_DEFAULT, FILE_LABEL_SELECTED_LIGHT, DIALOG_BTN_SECONDARY, _FONT
 from utils.text_parser import extract_doc_no, extract_title_and_doc_no
@@ -146,7 +147,6 @@ class AddEditDialog(QDialog):
 
         # 状态 — 使用自定义下拉框
         self._status_combo = ClickFocusComboBox()
-        from config import DOC_STATUS_LABELS
         for value, label in DOC_STATUS_LABELS.items():
             self._status_combo.addItem(label, value)
         self._status_combo.setFocusPolicy(Qt.ClickFocus)

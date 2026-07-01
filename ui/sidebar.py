@@ -36,7 +36,8 @@ class Sidebar(QWidget):
         title.setObjectName("SidebarTitle")
         layout.addWidget(title)
 
-        subtitle = QLabel("管理系统 v1.0")
+        from config import APP_VERSION
+        subtitle = QLabel(f"管理系统 {APP_VERSION}")
         subtitle.setObjectName("SidebarSubtitle")
         layout.addWidget(subtitle)
 

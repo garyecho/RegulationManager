@@ -33,6 +33,7 @@ def index_document(doc_id: int, title: str, doc_no: str = "",
                    department: str = "", issuing_org: str = "",
                    description: str = "", content_text: str = ""):
     """将单个文档写入 FTS5 索引（分词后）"""
+    import config
     with get_session() as session:
         # 检查是否已存在该记录
         exists = session.execute(text(
@@ -56,7 +57,7 @@ def index_document(doc_id: int, title: str, doc_no: str = "",
             "department": tokenize(department),
             "issuing_org": tokenize(issuing_org),
             "description": tokenize(description),
-            "content_text": tokenize(content_text[:100000]),  # 限制长度避免索引过大
+            "content_text": tokenize(content_text[:config.MAX_CONTENT_INDEX_LEN]),
         })
 
 
@@ -135,7 +136,9 @@ def search_fts(keyword: str, page: int = 1, page_size: int = 20) -> tuple:
     """FTS5 全文搜索（自动分词）"""
     # 对搜索关键词分词
     tokens = tokenize(keyword)
-    terms = [t.strip() for t in tokens.split() if t.strip()]
+    # 过滤并清理分词结果，移除 FTS5 查询语法字符
+    terms = [t.replace('"', '').replace("'", '').strip()
+             for t in tokens.split() if t.strip()]
     if not terms:
         return [], 0, 1
 
@@ -177,6 +180,7 @@ def rebuild_index(progress_callback=None):
     Args:
         progress_callback: 进度回调函数 callback(current, total, message)
     """
+    import config
     with get_session() as session:
         # 清空旧索引
         session.execute(text("DELETE FROM documents_fts"))
@@ -189,37 +193,20 @@ def rebuild_index(progress_callback=None):
 
         total = len(rows)
 
-        # 插入并分词
+        # 插入分词后的内容（一次性写入，避免 INSERT + UPDATE 双写）
         for i, row in enumerate(rows):
             rowid = row[0]
-            # 插入原始数据
             session.execute(text("""
                 INSERT INTO documents_fts(rowid, title, doc_no, department, issuing_org, description, content_text)
                 VALUES (:id, :title, :doc_no, :department, :issuing_org, :description, :content_text)
             """), {
                 "id": rowid,
-                "title": row[1] or "",
-                "doc_no": row[2] or "",
-                "department": row[3] or "",
-                "issuing_org": row[4] or "",
-                "description": row[5] or "",
-                "content_text": (row[6] or "")[:100000],
-            })
-
-            # 更新为分词后的内容
-            session.execute(text("""
-                UPDATE documents_fts SET
-                    title = :title, doc_no = :doc_no, department = :department,
-                    issuing_org = :issuing_org, description = :description, content_text = :content_text
-                WHERE rowid = :rowid
-            """), {
-                "rowid": rowid,
                 "title": tokenize(row[1]) if row[1] else "",
                 "doc_no": tokenize(row[2]) if row[2] else "",
                 "department": tokenize(row[3]) if row[3] else "",
                 "issuing_org": tokenize(row[4]) if row[4] else "",
                 "description": tokenize(row[5]) if row[5] else "",
-                "content_text": tokenize((row[6] or "")[:100000]),
+                "content_text": tokenize((row[6] or "")[:config.MAX_CONTENT_INDEX_LEN]),
             })
 
             # 报告进度

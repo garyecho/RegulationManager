@@ -47,6 +47,7 @@ class SettingsDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._main_window = parent  # 保存主窗口引用
         self.setWindowTitle("系统设置")
         self.setMinimumWidth(500)
         self.setMinimumHeight(400)
@@ -147,31 +148,26 @@ class SettingsDialog(QDialog):
 
     def _refresh_table_row_height(self):
         """刷新主窗口表格行高"""
-        from PyQt5.QtWidgets import QApplication
-        app = QApplication.instance()
-        if app:
-            main_window = app.activeWindow()
-            if main_window and hasattr(main_window, '_doc_panel'):
-                main_window._doc_panel.refresh_row_height()
+        if self._main_window and hasattr(self._main_window, '_doc_panel'):
+            self._main_window._doc_panel.refresh_row_height()
 
     def _update_qss(self, font_size: int):
         """动态更新 QSS 中的字体大小"""
-        from PyQt5.QtWidgets import QApplication
-        from PyQt5.QtCore import QCoreApplication
         import config
+        import re
 
-        app = QApplication.instance()
-        if app:
+        if self._main_window:
             qss_path = config.RESOURCES_DIR / "styles" / "light.qss"
             if qss_path.exists():
                 with open(qss_path, "r", encoding="utf-8") as f:
                     qss_content = f.read()
-                # 替换字体大小
-                qss_content = qss_content.replace("16px", f"{font_size}px")
-                # 应用到主窗口
-                main_window = app.activeWindow()
-                if main_window:
-                    main_window.setStyleSheet(qss_content)
+                # 只替换 font-size 属性中的 16px，不影响 padding/margin 等
+                qss_content = re.sub(
+                    r'font-size:\s*16px',
+                    f'font-size: {font_size}px',
+                    qss_content
+                )
+                self._main_window.setStyleSheet(qss_content)
 
     def _set_size(self, size: int):
         """设置字体大小（快捷预设）"""

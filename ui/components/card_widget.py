@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 
 from models import DocumentData
 from config import DOC_STATUS_LABELS
+from utils.text_utils import highlight_text
 from ui.styles import _FONT
 
 
@@ -26,16 +27,7 @@ class DocumentCard(QWidget):
 
     def _highlight(self, text: str) -> str:
         """关键词黄色背景高亮"""
-        if not self.keyword or not text:
-            return text
-        import re
-        escaped_text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        escaped_kw = self.keyword.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        pattern = re.compile(re.escape(escaped_kw), re.IGNORECASE)
-        return pattern.sub(
-            f'<span style="background-color:#FFEB3B;color:#333;padding:1px 3px;border-radius:2px">{escaped_kw}</span>',
-            escaped_text
-        )
+        return highlight_text(text, self.keyword)
 
     def _setup_ui(self):
         from ui.settings_dialog import get_font_size

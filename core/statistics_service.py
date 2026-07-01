@@ -17,11 +17,11 @@ def get_summary() -> dict:
         # 一次 GROUP BY 查询替代5次单独查询
         rows = session.query(
             Document.status, func.count(Document.id)
-        ).filter(Document.is_deleted == False).group_by(Document.status).all()
+        ).filter(Document.is_deleted.is_(False)).group_by(Document.status).all()
         status_counts = {status: count for status, count in rows}
 
         deleted = session.query(func.count(Document.id)).filter(
-            Document.is_deleted == True
+            Document.is_deleted.is_(True)
         ).scalar() or 0
 
         return {

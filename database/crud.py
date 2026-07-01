@@ -70,12 +70,14 @@ class DocumentCRUD:
             q = q.filter(Document.category_id == category_id)
 
         if keyword:
-            pattern = f"%{keyword}%"
+            # 转义 LIKE 通配符
+            escaped = keyword.replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{escaped}%"
             q = q.filter(
-                (Document.title.like(pattern)) |
-                (Document.doc_no.like(pattern)) |
-                (Document.department.like(pattern)) |
-                (Document.issuing_org.like(pattern))
+                (Document.title.like(pattern, escape='\\')) |
+                (Document.doc_no.like(pattern, escape='\\')) |
+                (Document.department.like(pattern, escape='\\')) |
+                (Document.issuing_org.like(pattern, escape='\\'))
             )
 
         total = q.count()
