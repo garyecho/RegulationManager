@@ -67,6 +67,7 @@ mkdir "dist\RegulationManager_x64\data\backups" 2>nul
 mkdir "dist\RegulationManager_x64\data\logs" 2>nul
 copy /y "dist_files\README.txt" "dist\RegulationManager_x64\README.txt" >nul
 copy /y "dist_files\backup.txt" "dist\RegulationManager_x64\backup.txt" >nul
+copy /y "dist_files\CHANGELOG.txt" "dist\RegulationManager_x64\CHANGELOG.txt" >nul
 
 REM 清理不必要的 Qt 文件，减小体积
 echo [x64] Cleaning unnecessary Qt files ...
@@ -116,6 +117,7 @@ mkdir "dist\RegulationManager_x86\data\backups" 2>nul
 mkdir "dist\RegulationManager_x86\data\logs" 2>nul
 copy /y "dist_files\README.txt" "dist\RegulationManager_x86\README.txt" >nul
 copy /y "dist_files\backup.txt" "dist\RegulationManager_x86\backup.txt" >nul
+copy /y "dist_files\CHANGELOG.txt" "dist\RegulationManager_x86\CHANGELOG.txt" >nul
 
 REM 清理不必要的 Qt 文件，减小体积
 echo [x86] Cleaning unnecessary Qt files ...
