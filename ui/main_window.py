@@ -235,6 +235,12 @@ class MainWindow(QMainWindow):
         act_rebuild.triggered.connect(self._rebuild_index)
         tools_menu.addAction(act_rebuild)
 
+
+        tools_menu.addSeparator()
+
+        act_init_db = QAction("初始化数据库（清空所有数据）", self)
+        act_init_db.triggered.connect(self._on_init_database)
+        tools_menu.addAction(act_init_db)
         act_settings = QAction("系统设置(&S)", self)
         act_settings.triggered.connect(self._on_settings)
         tools_menu.addAction(act_settings)
@@ -315,7 +321,8 @@ class MainWindow(QMainWindow):
         else:
             self._doc_panel.set_panel_mode(MODE_MANAGE)
             result = document_service.get_document_list(
-                category_id=self._current_category_id
+                category_id=self._current_category_id,
+                sort_field=self._doc_panel._current_sort,
             )
             self._doc_panel.load_result(result)
             title = "全部制度" if self._current_category_id is None else "分类文档"
@@ -496,7 +503,8 @@ class MainWindow(QMainWindow):
             result = document_service.get_deleted_documents(page=page)
         else:
             result = document_service.get_document_list(
-                category_id=self._current_category_id, page=page
+                category_id=self._current_category_id, page=page,
+                sort_field=self._doc_panel._current_sort,
             )
         self._doc_panel.load_result(result)
 
@@ -573,6 +581,23 @@ class MainWindow(QMainWindow):
         dlg = AddEditDialog(cats, parent=self)
         if dlg.exec():
             data = dlg.get_data()
+
+            # 重复检测
+            dup = document_service.check_file_duplicate(
+                data["file_path"], data.get("doc_no", "")
+            )
+            if dup["name_duplicate"]:
+                existing = dup["name_duplicate"]
+                reply = QMessageBox.question(
+                    self, "发现重复",
+                    f"文件名已存在：\n\n「{existing['title']}」\n"
+                    f"（原始文件：{existing['original_name']}）\n\n"
+                    f"是否仍然导入（将创建重复记录）？",
+                    QMessageBox.Yes | QMessageBox.No,
+                )
+                if reply != QMessageBox.Yes:
+                    return
+
             result = document_service.upload_document(
                 file_path=data["file_path"],
                 title=data["title"],
@@ -701,12 +726,108 @@ class MainWindow(QMainWindow):
             Toast.warning(self, "请选择分类")
             return
 
-        results = document_service.batch_upload(files, category_id)
-        msg = f"导入完成：成功 {results['success']}，失败 {results['failed']}，跳过 {results['skipped']}"
+        # 检查重复文件
+        duplicates = []
+        for fp in files:
+            stem = os.path.splitext(os.path.basename(fp))[0]
+            from utils.text_parser import extract_title_and_doc_no
+            _, doc_no = extract_title_and_doc_no(stem)
+            dup = document_service.check_file_duplicate(fp, doc_no)
+            if dup["name_duplicate"] or dup["doc_no_duplicate"]:
+                duplicates.append({
+                    "file": os.path.basename(fp),
+                    "path": fp,
+                    "name_dup": dup["name_duplicate"],
+                    "doc_no_dup": dup["doc_no_duplicate"]
+                })
+        
+        # 如果有重复文件，显示自定义对话框
+        skip_duplicates = True
+        if duplicates:
+            dup_msg = f"发现 {len(duplicates)} 个重复文件：\n\n"
+            for d in duplicates[:10]:  # 最多显示10个
+                if d["name_dup"]:
+                    dup_msg += f"• {d['file']}（文件名重复：{d['name_dup']['title']}）\n"
+                elif d["doc_no_dup"]:
+                    dup_msg += f"• {d['file']}（文号重复：{d['doc_no_dup']['doc_no']}）\n"
+            if len(duplicates) > 10:
+                dup_msg += f"\n...还有 {len(duplicates) - 10} 个重复文件"
+            dup_msg += "\n\n请选择处理方式："
+            
+            # 创建自定义对话框
+            dlg = QDialog(self)
+            dlg.setWindowTitle("发现重复文件")
+            dlg.setMinimumWidth(500)
+            dlg_layout = QVBoxLayout(dlg)
+            dlg_layout.setContentsMargins(24, 24, 24, 24)
+            dlg_layout.setSpacing(16)
+            
+            # 图标和消息
+            msg_layout = QHBoxLayout()
+            icon_label = QLabel("⚠️")
+            icon_label.setStyleSheet("font-size: 32px;")
+            icon_label.setAlignment(Qt.AlignTop)
+            msg_layout.addWidget(icon_label)
+            
+            msg_text = QLabel(dup_msg)
+            msg_text.setWordWrap(True)
+            msg_text.setStyleSheet("font-size: 13px;")
+            msg_layout.addWidget(msg_text, 1)
+            dlg_layout.addLayout(msg_layout)
+            
+            # 按钮区域
+            btn_layout = QVBoxLayout()
+            btn_layout.setSpacing(8)
+            
+            # 跳过重复文件
+            btn_skip = QPushButton("跳过重复文件（推荐）")
+            btn_skip.setStyleSheet("QPushButton { background: #28A745; color: white; padding: 10px; font-weight: bold; } QPushButton:hover { background: #218838; }")
+            btn_skip.clicked.connect(lambda: dlg.done(1))
+            btn_layout.addWidget(btn_skip)
+            skip_desc = QLabel("    只导入新文件，跳过已存在的文件")
+            skip_desc.setStyleSheet("color: #666; font-size: 11px;")
+            btn_layout.addWidget(skip_desc)
+            
+            # 继续导入
+            btn_import = QPushButton("继续导入（创建重复）")
+            btn_import.setStyleSheet("QPushButton { background: #FFC107; color: #333; padding: 10px; } QPushButton:hover { background: #E0A800; }")
+            btn_import.clicked.connect(lambda: dlg.done(2))
+            btn_layout.addWidget(btn_import)
+            import_desc = QLabel("    导入所有文件，包括重复的（会创建重复记录）")
+            import_desc.setStyleSheet("color: #666; font-size: 11px;")
+            btn_layout.addWidget(import_desc)
+            
+            # 取消
+            btn_cancel = QPushButton("取消导入")
+            btn_cancel.setStyleSheet("QPushButton { background: #6C757D; color: white; padding: 10px; } QPushButton:hover { background: #5A6268; }")
+            btn_cancel.clicked.connect(lambda: dlg.done(0))
+            btn_layout.addWidget(btn_cancel)
+            cancel_desc = QLabel("    取消本次批量导入操作")
+            cancel_desc.setStyleSheet("color: #666; font-size: 11px;")
+            btn_layout.addWidget(cancel_desc)
+            
+            dlg_layout.addLayout(btn_layout)
+            
+            result = dlg.exec()
+            
+            if result == 0:  # 取消
+                return
+            elif result == 1:  # 跳过
+                skip_duplicates = True
+            elif result == 2:  # 继续导入
+                skip_duplicates = False
+        
+        results = document_service.batch_upload(files, category_id, skip_duplicates=skip_duplicates)
+        
+        # 构建提示消息
+        msg_parts = [f"导入完成：成功 {results['success']}，失败 {results['failed']}，跳过 {results['skipped']}"]
+        if results.get('duplicates'):
+            msg_parts.append(f"（其中 {len(results['duplicates'])} 个重复文件）")
+        msg = " ".join(msg_parts)
+        
         Toast.success(self, msg)
         self._refresh_categories()
         self._refresh_list()
-
     def _on_batch_export(self):
         """批量导出"""
         Toast.info(self, "批量导出功能开发中")
@@ -809,6 +930,53 @@ class MainWindow(QMainWindow):
         worker.start()
         dlg.exec()
 
+    def _on_init_database(self):
+        """初始化数据库（清空所有数据）"""
+        reply = QMessageBox.warning(
+            self, "⚠️ 初始化数据库确认",
+            "⚠️ 警告：此操作将清空所有数据！\n\n"
+            "包括：\n"
+            "• 所有制度文档记录\n"
+            "• 所有分类\n"
+            "• 所有标签\n"
+            "• 搜索索引\n\n"
+            "此操作无法撤销！确定要继续吗？",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        # 二次确认
+        reply2 = QMessageBox.warning(
+            self, "二次确认",
+            "请再次确认：初始化数据库？\n\n所有数据将被永久删除！",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply2 != QMessageBox.Yes:
+            return
+
+        try:
+            from database import get_session
+            from sqlalchemy import text
+            with get_session() as session:
+                session.execute(text("DELETE FROM document_tags"))
+                session.execute(text("DELETE FROM documents"))
+                session.execute(text("DELETE FROM tags"))
+                session.commit()
+
+            # 重建 FTS5 索引
+            from utils.search_engine import rebuild_index
+            rebuild_index()
+
+            # 重新加载数据
+            self._refresh_categories()
+            self._refresh_list()
+
+            Toast.success(self, "数据库初始化完成")
+        except Exception as e:
+            Toast.error(self, f"初始化失败: {e}")
     def _toggle_theme(self):
         """切换主题"""
         Toast.info(self, "主题切换功能开发中")

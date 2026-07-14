@@ -63,7 +63,7 @@ class DocumentCRUD:
     @staticmethod
     def get_list(session: Session, category_id: int = None,
                  page: int = 1, page_size: int = 20,
-                 keyword: str = None) -> tuple:
+                 keyword: str = None, sort_field: str = "updated_at") -> tuple:
         q = session.query(Document).filter(Document.is_deleted == False)
 
         if category_id is not None:
@@ -80,9 +80,13 @@ class DocumentCRUD:
                 (Document.issuing_org.like(pattern, escape='\\'))
             )
 
+        # 动态排序
+        order_col = getattr(Document, sort_field, Document.updated_at)
+        q = q.order_by(order_col.desc()) if sort_field in ("updated_at", "created_at") else \
+            q.order_by(order_col)
+
         total = q.count()
-        docs = q.order_by(Document.updated_at.desc()) \
-                .offset((page - 1) * page_size) \
+        docs = q.offset((page - 1) * page_size) \
                 .limit(page_size).all()
         total_pages = max(1, (total + page_size - 1) // page_size)
         return docs, total, total_pages
@@ -147,3 +151,38 @@ class DocumentCRUD:
             Document.category_id, func.count(Document.id)
         ).filter(Document.is_deleted == False).group_by(Document.category_id).all()
         return {r[0]: r[1] for r in rows}
+
+    @staticmethod
+    def find_by_original_name(session: Session, name: str) -> Optional[Document]:
+        """按原始文件名查找文档"""
+        return session.query(Document).filter(
+            Document.original_name == name,
+            Document.is_deleted == False
+        ).first()
+
+    @staticmethod
+    def find_by_doc_no(session: Session, doc_no: str) -> Optional[Document]:
+        """按文号查找文档"""
+        if not doc_no:
+            return None
+        return session.query(Document).filter(
+            Document.doc_no == doc_no,
+            Document.is_deleted == False
+        ).first()
+
+    @staticmethod
+    def check_duplicate(session: Session, original_name: str, doc_no: str) -> dict:
+        """检查文件名和文号是否重复，返回重复信息"""
+        result = {"name_duplicate": None, "doc_no_duplicate": None}
+        
+        # 检查文件名重复
+        if original_name:
+            name_doc = DocumentCRUD.find_by_original_name(session, original_name)
+            if name_doc:
+                result["name_duplicate"] = {
+                    "id": name_doc.id,
+                    "title": name_doc.title,
+                    "original_name": name_doc.original_name
+                }
+        
+        return result

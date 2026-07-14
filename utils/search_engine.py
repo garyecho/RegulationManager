@@ -113,14 +113,15 @@ def extract_snippet(content_text: str, keyword: str, max_len: int = 150) -> str:
 
     # 如果句子太长，截取关键词周围的片段
     if len(snippet) > max_len:
+        snippet_len = len(snippet)
         kw_pos_in_snippet = snippet.find(keyword)
         if kw_pos_in_snippet != -1:
             start = max(0, kw_pos_in_snippet - max_len // 3)
-            end = min(len(snippet), kw_pos_in_snippet + len(keyword) + max_len * 2 // 3)
+            end = min(snippet_len, kw_pos_in_snippet + len(keyword) + max_len * 2 // 3)
             snippet = snippet[start:end]
             if start > 0:
                 snippet = "..." + snippet
-            if end < len(content_text):
+            if end < snippet_len:
                 snippet = snippet + "..."
 
     # 添加省略号

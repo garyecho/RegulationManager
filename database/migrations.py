@@ -55,6 +55,10 @@ def _setup_fts5():
     _extract_missing_text()
     _cleanup_obsolete_categories()
 
+    # 启动时自动重建 FTS5 索引（每次 DROP + CREATE 后都需要）
+    from utils.search_engine import rebuild_index
+    rebuild_index()
+
     logger.info("数据库初始化完成")
 
 

@@ -65,18 +65,49 @@ def _to_dto(doc) -> DocumentData:
     )
 
 
+
+def _delete_file(path: str):
+    """安全删除物理文件"""
+    if path and os.path.exists(path):
+        try:
+            os.remove(path)
+        except OSError as e:
+            logger.warning(f"删除文件失败 {path}: {e}")
+
 def _now_str() -> str:
     """当前时间戳字符串（用于 raw SQL 更新）"""
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
 
 
+def _reindex_document(doc_id: int):
+    """将文档重新写入 FTS5 索引"""
+    from database import get_session
+    from database.models import Document
+    with get_session() as session:
+        doc = session.query(Document).filter(Document.id == doc_id).first()
+        if not doc:
+            return
+        from utils.search_engine import index_document
+        index_document(
+            doc_id=doc.id,
+            title=doc.title or "",
+            doc_no=doc.doc_no or "",
+            department=doc.department or "",
+            issuing_org=doc.issuing_org or "",
+            description=doc.description or "",
+            content_text=doc.content_text or "",
+        )
+
+
 # ── 查询 ──────────────────────────────────────────────────
 
 def get_document_list(category_id: int = None, page: int = 1,
-                      page_size: int = config.DEFAULT_PAGE_SIZE) -> SearchResult:
+                      page_size: int = config.DEFAULT_PAGE_SIZE,
+                      sort_field: str = "updated_at") -> SearchResult:
     with get_session() as session:
         docs, total, total_pages = DocumentCRUD.get_list(
-            session, category_id=category_id, page=page, page_size=page_size
+            session, category_id=category_id, page=page, page_size=page_size,
+            sort_field=sort_field,
         )
         return SearchResult(
             documents=[_to_dto(d) for d in docs],
@@ -174,14 +205,27 @@ def upload_document(file_path: str, title: str, doc_no: str = "",
     return result
 
 
-def batch_upload(file_paths: list, category_id: int = None) -> dict:
+def batch_upload(file_paths: list, category_id: int = None, skip_duplicates: bool = True) -> dict:
     from utils.text_parser import extract_title_and_doc_no, detect_status_from_name
-    result = {"success": 0, "failed": 0, "skipped": 0}
+    result = {"success": 0, "failed": 0, "skipped": 0, "duplicates": []}
     for fp in file_paths:
         try:
             stem = os.path.splitext(os.path.basename(fp))[0]
             title, doc_no = extract_title_and_doc_no(stem)
             detected_status = detect_status_from_name(title) or detect_status_from_name(stem)
+            
+            # 检查重复
+            if skip_duplicates:
+                dup = check_file_duplicate(fp, doc_no)
+                if dup["name_duplicate"] or dup["doc_no_duplicate"]:
+                    result["duplicates"].append({
+                        "file": os.path.basename(fp),
+                        "name_dup": dup["name_duplicate"],
+                        "doc_no_dup": dup["doc_no_duplicate"]
+                    })
+                    result["skipped"] += 1
+                    continue
+            
             r = upload_document(fp, title=title, doc_no=doc_no,
                                 category_id=category_id, status=detected_status or None)
             result["success" if r else "skipped"] += 1
@@ -204,68 +248,18 @@ def update_document(doc_id: int, **kwargs) -> Optional[DocumentData]:
 
 def delete_document(doc_id: int) -> bool:
     """软删除文档（移入回收站）"""
-    now = _now_str()
+    from database.models import Document
     with get_session() as session:
-        result = session.execute(
-            sql_text("UPDATE documents SET is_deleted=1, updated_at=:now "
-                     "WHERE id=:id AND is_deleted=0"),
-            {"now": now, "id": doc_id}
-        )
-    # 从 FTS5 索引中移除
-    if result.rowcount > 0:
-        try:
-            from utils.search_engine import remove_from_index
-            remove_from_index(doc_id)
-        except Exception as e:
-            logger.debug(f"FTS5 索引移除失败 doc_id={doc_id}: {e}")
-    return result.rowcount > 0
-
-
-def restore_document(doc_id: int) -> bool:
-    """从回收站恢复文档"""
-    now = _now_str()
-    with get_session() as session:
-        result = session.execute(
-            sql_text("UPDATE documents SET is_deleted=0, updated_at=:now "
-                     "WHERE id=:id AND is_deleted=1"),
-            {"now": now, "id": doc_id}
-        )
-    # 重新加入 FTS5 索引
-    if result.rowcount > 0:
-        try:
-            _reindex_document(doc_id)
-        except Exception as e:
-            logger.debug(f"FTS5 索引恢复失败 doc_id={doc_id}: {e}")
-    return result.rowcount > 0
-
-
-def _reindex_document(doc_id: int):
-    """重新索引单个文档到 FTS5"""
-    from utils.search_engine import index_document
-    with get_session() as session:
-        doc = DocumentCRUD.get_by_id(session, doc_id)
-        if doc:
-            index_document(
-                doc_id=doc.id,
-                title=doc.title or "",
-                doc_no=doc.doc_no or "",
-                department=doc.department or "",
-                issuing_org=doc.issuing_org or "",
-                description=doc.description or "",
-                content_text=doc.content_text or "",
-            )
-
-
-def permanent_delete(doc_id: int) -> bool:
-    """永久删除文档"""
-    with get_session() as session:
-        row = session.execute(
-            sql_text("SELECT file_path FROM documents WHERE id=:id"), {"id": doc_id}
-        ).fetchone()
-        if not row:
+        doc = session.query(Document).filter(
+            Document.id == doc_id,
+            Document.is_deleted == False
+        ).first()
+        if not doc:
             return False
-        _delete_file(_resolve_path(row[0]))
-        session.execute(sql_text("DELETE FROM documents WHERE id=:id"), {"id": doc_id})
+        doc.is_deleted = True
+        doc.updated_at = datetime.now()
+        session.flush()
+    
     # 从 FTS5 索引中移除
     try:
         from utils.search_engine import remove_from_index
@@ -273,33 +267,57 @@ def permanent_delete(doc_id: int) -> bool:
     except Exception as e:
         logger.debug(f"FTS5 索引移除失败 doc_id={doc_id}: {e}")
     return True
-
-
+def restore_document(doc_id: int) -> bool:
+    """从回收站恢复文档"""
+    from database.models import Document
+    with get_session() as session:
+        doc = session.query(Document).filter(
+            Document.id == doc_id,
+            Document.is_deleted == True
+        ).first()
+        if not doc:
+            return False
+        doc.is_deleted = False
+        doc.updated_at = datetime.now()
+        session.flush()
+    
+    # 重新加入 FTS5 索引
+    try:
+        _reindex_document(doc_id)
+    except Exception as e:
+        logger.debug(f"FTS5 索引恢复失败 doc_id={doc_id}: {e}")
+    return True
 # ── 批量操作 ──────────────────────────────────────────────
 
 def _batch_toggle_deleted(doc_ids: List[int], deleted: bool) -> dict:
     """批量软删除/还原的统一实现"""
-    success, failed = 0, 0
-    now = _now_str()
+    from database.models import Document
+    success_ids = []
+    failed = 0
+    now = datetime.now()
+    
     with get_session() as session:
         for doc_id in doc_ids:
             try:
-                result = session.execute(
-                    sql_text("UPDATE documents SET is_deleted=:val, updated_at=:now "
-                             "WHERE id=:id AND is_deleted=:old"),
-                    {"val": int(deleted), "now": now, "id": doc_id, "old": int(not deleted)}
-                )
-                if result.rowcount > 0:
-                    success += 1
+                doc = session.query(Document).filter(
+                    Document.id == doc_id,
+                    Document.is_deleted == (not deleted)
+                ).first()
+                if doc:
+                    doc.is_deleted = deleted
+                    doc.updated_at = now
+                    session.flush()
+                    success_ids.append(doc_id)
                 else:
                     failed += 1
             except Exception as e:
                 logger.error(f"批量操作失败 doc_id={doc_id}: {e}")
                 failed += 1
-    # 更新 FTS5 索引
-    if success > 0:
+    
+    # 更新 FTS5 索引（只处理成功变更的文档）
+    if success_ids:
         from utils.search_engine import remove_from_index
-        for doc_id in doc_ids:
+        for doc_id in success_ids:
             try:
                 if deleted:
                     remove_from_index(doc_id)
@@ -307,9 +325,8 @@ def _batch_toggle_deleted(doc_ids: List[int], deleted: bool) -> dict:
                     _reindex_document(doc_id)
             except Exception as e:
                 logger.debug(f"FTS5 索引更新失败 doc_id={doc_id}: {e}")
-    return {"success": success, "failed": failed}
-
-
+    
+    return {"success": len(success_ids), "failed": failed}
 def batch_delete(doc_ids: List[int]) -> dict:
     """批量软删除（移入回收站）"""
     return _batch_toggle_deleted(doc_ids, deleted=True)
@@ -322,7 +339,8 @@ def batch_restore(doc_ids: List[int]) -> dict:
 
 def batch_permanent_delete(doc_ids: List[int]) -> dict:
     """批量永久删除"""
-    success, failed = 0, 0
+    success_ids = []
+    failed = 0
     with get_session() as session:
         for doc_id in doc_ids:
             try:
@@ -332,18 +350,30 @@ def batch_permanent_delete(doc_ids: List[int]) -> dict:
                 if row:
                     _delete_file(_resolve_path(row[0]))
                     session.execute(sql_text("DELETE FROM documents WHERE id=:id"), {"id": doc_id})
-                    success += 1
+                    success_ids.append(doc_id)
                 else:
                     failed += 1
             except Exception as e:
                 logger.error(f"批量永久删除失败 doc_id={doc_id}: {e}")
                 failed += 1
-    # 从 FTS5 索引中移除
-    if success > 0:
+    # 从 FTS5 索引中移除（只处理成功删除的文档）
+    if success_ids:
         from utils.search_engine import remove_from_index
-        for doc_id in doc_ids:
+        for doc_id in success_ids:
             try:
                 remove_from_index(doc_id)
             except Exception as e:
                 logger.debug(f"FTS5 索引移除失败 doc_id={doc_id}: {e}")
-    return {"success": success, "failed": failed}
+    return {"success": len(success_ids), "failed": failed}
+
+
+def check_file_duplicate(file_path: str, doc_no: str = "") -> dict:
+    """检查文件是否重复（按文件名和文号）"""
+    from utils.text_parser import extract_title_and_doc_no
+    original_name = os.path.basename(file_path)
+    if not doc_no:
+        stem = os.path.splitext(original_name)[0]
+        _, doc_no = extract_title_and_doc_no(stem)
+    
+    with get_session() as session:
+        return DocumentCRUD.check_duplicate(session, original_name, doc_no)

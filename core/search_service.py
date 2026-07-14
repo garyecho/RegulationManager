@@ -22,7 +22,10 @@ def search(f: SearchFilter) -> SearchResult:
 
     if doc_ids:
         with get_session() as session:
-            stmt = select(Document).where(Document.id.in_(doc_ids))
+            stmt = select(Document).where(
+                Document.id.in_(doc_ids),
+                Document.is_deleted == False
+            )
             docs = session.execute(stmt).scalars().all()
             id_map = {d.id: d for d in docs}
             ordered = [id_map[i] for i in doc_ids if i in id_map]

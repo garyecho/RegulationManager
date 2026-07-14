@@ -30,13 +30,12 @@ desktop.ini
 *.spec.bak
 
 # Runtime data
-data/documents/
-data/backups/
-data/logs/
-data/*.db
+data/
+*.db
+*.db-shm
+*.db-wal
 
-# Logs
-*.log
-
-# Backup files
-*.zip
+# Test/temp files
+*_check.txt
+test_encoding.txt
+*.bak

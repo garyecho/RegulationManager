@@ -181,6 +181,10 @@ class DocumentPanel(QWidget):
         self._table = self._create_table()
         self._stack.addWidget(self._table)
 
+        # 恢复用户上次保存的列宽和顺序（必须在 self._table 赋值之后）
+        self._restoring_header = False
+        self._restore_header_state()
+
         self._card_scroll = QScrollArea()
         self._card_scroll.setWidgetResizable(True)
         self._card_widget = QWidget()
@@ -223,24 +227,23 @@ class DocumentPanel(QWidget):
         )
         header = table.horizontalHeader()
         header.setStretchLastSection(False)
+        header.setSectionsMovable(True)
 
-        # 根据字体大小动态设置列宽
+        # 所有列允许拖拽调宽
+        for i in range(7):
+            header.setSectionResizeMode(i, QHeaderView.Interactive)
+
+        # 根据字体大小动态设置初始列宽（首次运行或字体变更时使用）
         from ui.settings_dialog import get_font_size
         cur_size = get_font_size()
         checkbox_width = max(40, cur_size * 2 + 10)
         status_width = max(90, cur_size * 6 + 10)
         action_width = max(90, cur_size * 5 + 20)
 
-        header.setSectionResizeMode(0, QHeaderView.Fixed)
         table.setColumnWidth(0, checkbox_width)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.Fixed)
         table.setColumnWidth(4, status_width)
-        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(6, QHeaderView.Fixed)
         table.setColumnWidth(6, action_width)
+
         table.setSelectionBehavior(QAbstractItemView.SelectRows)
         table.setSelectionMode(QAbstractItemView.SingleSelection)
         table.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -251,7 +254,36 @@ class DocumentPanel(QWidget):
         table.setShowGrid(False)
         table.itemClicked.connect(self._on_table_clicked)
         table.itemDoubleClicked.connect(self._on_table_double_clicked)
+
+        # 列宽/顺序变化时自动保存
+        header.sectionResized.connect(self._on_header_changed)
+        header.sectionMoved.connect(self._on_header_changed)
+
         return table
+
+    def _save_header_state(self):
+        """保存表头状态（列宽+顺序）到 QSettings"""
+        from PyQt5.QtCore import QSettings
+        state = self._table.horizontalHeader().saveState()
+        QSettings("RegulationManager", "RegulationManager").setValue(
+            "ui/table_header_state", state
+        )
+
+    def _restore_header_state(self):
+        """从 QSettings 恢复表头状态"""
+        from PyQt5.QtCore import QSettings
+        state = QSettings("RegulationManager", "RegulationManager").value(
+            "ui/table_header_state"
+        )
+        if state is not None:
+            self._restoring_header = True
+            self._table.horizontalHeader().restoreState(state)
+            self._restoring_header = False
+
+    def _on_header_changed(self, *args):
+        """列宽或顺序变化时保存"""
+        if not self._restoring_header:
+            self._save_header_state()
 
     # ── 模式切换 ──
 
@@ -271,18 +303,6 @@ class DocumentPanel(QWidget):
 
         # 复选框列显隐
         self._table.setColumnHidden(0, is_browse)
-        if is_browse:
-            self._table.horizontalHeader().setSectionResizeMode(
-                1, QHeaderView.Stretch
-            )
-        else:
-            self._table.setColumnWidth(0, 40)
-            self._table.horizontalHeader().setSectionResizeMode(
-                0, QHeaderView.Fixed
-            )
-            self._table.horizontalHeader().setSectionResizeMode(
-                1, QHeaderView.Stretch
-            )
 
         # 全选栏
         self._select_all_bar.setVisible(not is_browse and len(self._documents) > 0)
@@ -464,9 +484,9 @@ class DocumentPanel(QWidget):
 
             # 标题列（包含搜索摘要，关键词高亮）
             if doc.snippet:
-                title_html = f"<div style='margin:2px 0'>{self._highlight(doc.title)}</div><div style='color:#888;font-size:{snippet_size}px'>{self._highlight(doc.snippet)}</div>"
+                title_html = f"<div style='margin:2px 0;font-size:{cur_size}px'>{self._highlight(doc.title)}</div><div style='color:#888;font-size:{snippet_size}px'>{self._highlight(doc.snippet)}</div>"
             else:
-                title_html = f"<div>{self._highlight(doc.title)}</div>"
+                title_html = f"<div style='font-size:{cur_size}px'>{self._highlight(doc.title)}</div>"
 
             title_label = ClickableLabel()
             title_label.setTextFormat(Qt.RichText)

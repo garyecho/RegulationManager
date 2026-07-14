@@ -67,7 +67,7 @@ class Toast(QLabel):
 
         self.show()
         self.raise_()
-        QTimer.singleShot(duration, self.hide)
+        QTimer.singleShot(duration, self.deleteLater)
 
     @staticmethod
     def success(parent, message):
