@@ -1,6 +1,6 @@
 # 制度汇编管理系统 v1.2.1
 
-单机版制度文件集中管理工具，面向金融/企业合规部门，支持分类管理、全文搜索（含正文检索）、批量导入、回收站等功能。
+单机版制度文件集中管理工具，面向金融/企业合规部门，支持分类管理、全文搜索（含正文检索）、批量导入、回收站等功能。支持 Windows 和银河麒麟操作系统。
 
 ## 功能概览
 
@@ -20,7 +20,7 @@
 | 数据备份 | 一键备份/恢复，ZIP 格式 |
 | 界面设置 | 字体大小调节（10-18px），实时预览，设置持久化 |
 | 样式管理 | 浅色现代企业级 UI，样式集中在 `light.qss` 统一管理 |
-| 打包分发 | 支持 x64/x86 双架构打包，数据使用相对路径，可直接分发 |
+| 打包分发 | 支持 Windows x64/x86 + 银河麒麟 x86_64 多平台打包，数据使用相对路径，可直接分发 |
 
 ## 支持格式
 
@@ -211,14 +211,28 @@ build.bat x86      :: 只打 32位
 
 ```
 dist/
-├── RegulationManager_x64/
+├── RegulationManager_x64/          # Windows 64位
 │   ├── RegulationManager.exe
-│   ├── _internal/           # PyInstaller 运行时（勿删）
-│   ├── data/                # 用户数据（自动创建）
-│   ├── README.txt
-│   └── backup.txt
-└── RegulationManager_x86/   # Win7 32位专用
-    └── ...
+│   ├── _internal/
+│   └── data/
+├── RegulationManager_x86/          # Windows 32位
+│   └── ...
+└── RegulationManager_Kylin_x64/    # 银河麒麟 x86_64
+    ├── RegulationManager          # Linux 可执行文件
+    ├── start.sh                   # 双击启动脚本
+    ├── install.sh                 # 安装到开始菜单
+    ├── _internal/
+    └── data/
+```
+
+### 麒麟系统构建
+
+```bash
+# 方式一：Docker 容器构建（在 Windows 上即可完成）
+build_docker.bat          # 自动构建并打包为 tar.gz
+
+# 方式二：在麒麟机器上直接构建
+chmod +x build_linux.sh && ./build_linux.sh
 ```
 
 ### 分发注意事项
@@ -253,12 +267,13 @@ dist/
 
 | 组件 | 技术 |
 |------|------|
-| GUI | PyQt5 5.15（兼容 Win7~Win11） |
+| GUI | PyQt5 5.15（兼容 Win7~Win11 / 麒麟 v10~v11） |
 | 数据库 | SQLite + SQLAlchemy |
 | 全文搜索 | SQLite FTS5 + jieba 中文分词 |
 | 正文提取 | PyMuPDF (PDF)、python-docx (DOCX) |
-| 打包 | PyInstaller 6.x (onedir) |
+| 打包 | PyInstaller 6.x (onedir) / Docker 容器构建 |
 | 主题 | 浅色主题 QSS（集中管理） |
+| 平台 | Windows (x64/x86)、银河麒麟 (x86_64) |
 
 ## 常见问题
 
@@ -280,10 +295,17 @@ dist/
 **Q: pip 安装报 SSL/proxy 错误？**
 用国内镜像：`pip install ... -i http://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn`
 
+**Q: 麒麟系统双击 start.sh 没反应？**
+右键 start.sh → 属性 → 权限 → 勾选"允许作为程序执行文件"，或在终端执行：`chmod +x start.sh && ./start.sh`
+
+**Q: 麒麟系统无法使用中文输入法？**
+确保系统已安装 fcitx 输入法框架，执行：`sudo apt install fcitx-frontend-qt5 -y`
+
 ## 版本历史
 
 ### v1.2.1 (2026-07)
 
+- **新增**: 银河麒麟 v10 SP1 / v11 x86_64 平台支持（Docker 容器构建 + 一键安装）
 - **新增**: 新增制度时重复文件检测，弹出确认框提示（与批量导入行为一致）
 - **新增**: 表格列支持拖拽排序和拖拽边框调宽，列宽和顺序自动保存，重启恢复
 - **修复**: 回收站恢复文档后 FTS5 索引丢失（`_reindex_document` 函数缺失）
