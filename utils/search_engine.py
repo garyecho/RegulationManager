@@ -33,46 +33,58 @@ def index_document(doc_id: int, title: str, doc_no: str = "",
                    department: str = "", issuing_org: str = "",
                    description: str = "", content_text: str = ""):
     """将单个文档写入 FTS5 索引（分词后）"""
-    import config
     with get_session() as session:
-        # 检查是否已存在该记录
-        exists = session.execute(text(
-            "SELECT COUNT(*) FROM documents_fts WHERE rowid = :id"
-        ), {"id": doc_id}).scalar() or 0
+        index_document_in_session(
+            session, doc_id, title, doc_no, department, issuing_org,
+            description, content_text,
+        )
 
-        if exists > 0:
-            # 已存在：先删除旧记录
-            session.execute(text(
-                "DELETE FROM documents_fts WHERE rowid = :id"
-            ), {"id": doc_id})
 
-        # 插入分词后的新记录
+def index_document_in_session(session, doc_id: int, title: str,
+                              doc_no: str = "", department: str = "",
+                              issuing_org: str = "", description: str = "",
+                              content_text: str = ""):
+    """在调用方事务中更新单个文档的 FTS5 索引。"""
+    import config
+    exists = session.execute(text(
+        "SELECT COUNT(*) FROM documents_fts WHERE rowid = :id"
+    ), {"id": doc_id}).scalar() or 0
+
+    if exists > 0:
         session.execute(text("""
-            INSERT INTO documents_fts(rowid, title, doc_no, department, issuing_org, description, content_text)
-            VALUES (:id, :title, :doc_no, :department, :issuing_org, :description, :content_text)
-        """), {
-            "id": doc_id,
-            "title": tokenize(title),
-            "doc_no": tokenize(doc_no),
-            "department": tokenize(department),
-            "issuing_org": tokenize(issuing_org),
-            "description": tokenize(description),
-            "content_text": tokenize(content_text[:config.MAX_CONTENT_INDEX_LEN]),
-        })
+            DELETE FROM documents_fts WHERE rowid = :id
+        """), {"id": doc_id})
+
+    session.execute(text("""
+        INSERT INTO documents_fts(rowid, title, doc_no, department, issuing_org, description, content_text)
+        VALUES (:id, :title, :doc_no, :department, :issuing_org, :description, :content_text)
+    """), {
+        "id": doc_id,
+        "title": tokenize(title),
+        "doc_no": tokenize(doc_no),
+        "department": tokenize(department),
+        "issuing_org": tokenize(issuing_org),
+        "description": tokenize(description),
+        "content_text": tokenize(content_text[:config.MAX_CONTENT_INDEX_LEN]),
+    })
 
 
 def remove_from_index(doc_id: int):
     """从 FTS5 索引中移除文档"""
     with get_session() as session:
-        # 检查是否已存在该记录
-        exists = session.execute(text(
-            "SELECT COUNT(*) FROM documents_fts WHERE rowid = :id"
-        ), {"id": doc_id}).scalar() or 0
+        remove_from_index_in_session(session, doc_id)
 
-        if exists > 0:
-            session.execute(text(
-                "DELETE FROM documents_fts WHERE rowid = :id"
-            ), {"id": doc_id})
+
+def remove_from_index_in_session(session, doc_id: int):
+    """在调用方事务中移除单个文档的 FTS5 索引。"""
+    exists = session.execute(text(
+        "SELECT COUNT(*) FROM documents_fts WHERE rowid = :id"
+    ), {"id": doc_id}).scalar() or 0
+
+    if exists > 0:
+        session.execute(text(
+            "DELETE FROM documents_fts WHERE rowid = :id"
+        ), {"id": doc_id})
 
 
 def extract_snippet(content_text: str, keyword: str, max_len: int = 150) -> str:

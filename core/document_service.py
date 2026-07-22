@@ -8,8 +8,6 @@ import logging
 from datetime import datetime
 from typing import Optional, List
 
-from sqlalchemy import text as sql_text
-
 import config
 from database import get_session
 from database.crud import DocumentCRUD
@@ -29,6 +27,11 @@ def _resolve_path(file_path: str) -> str:
     # 新数据：相对路径，基于 DATA_DIR 解析
     resolved = config.DATA_DIR / file_path
     return str(resolved)
+
+
+def _normalized_path(file_path: str) -> str:
+    """将数据库路径规范化，用于识别绝对/相对路径指向的同一文件。"""
+    return os.path.normcase(os.path.realpath(_resolve_path(file_path)))
 
 
 def _to_dto(doc) -> DocumentData:
@@ -81,22 +84,23 @@ def _now_str() -> str:
 
 def _reindex_document(doc_id: int):
     """将文档重新写入 FTS5 索引"""
-    from database import get_session
     from database.models import Document
     with get_session() as session:
         doc = session.query(Document).filter(Document.id == doc_id).first()
         if not doc:
             return
-        from utils.search_engine import index_document
-        index_document(
-            doc_id=doc.id,
-            title=doc.title or "",
-            doc_no=doc.doc_no or "",
-            department=doc.department or "",
-            issuing_org=doc.issuing_org or "",
-            description=doc.description or "",
-            content_text=doc.content_text or "",
-        )
+        index_data = {
+            "doc_id": doc.id,
+            "title": doc.title or "",
+            "doc_no": doc.doc_no or "",
+            "department": doc.department or "",
+            "issuing_org": doc.issuing_org or "",
+            "description": doc.description or "",
+            "content_text": doc.content_text or "",
+        }
+
+    from utils.search_engine import index_document
+    index_document(**index_data)
 
 
 # ── 查询 ──────────────────────────────────────────────────
@@ -237,11 +241,30 @@ def batch_upload(file_paths: list, category_id: int = None, skip_duplicates: boo
 
 def update_document(doc_id: int, **kwargs) -> Optional[DocumentData]:
     """更新文档元数据（分类、状态、标题等），不修改文件"""
-    with get_session() as session:
-        doc = DocumentCRUD.update(session, doc_id, **kwargs)
-        if not doc:
-            return None
-        return _to_dto(doc)
+    indexed_fields = {
+        "title", "doc_no", "department", "issuing_org", "description",
+    }
+    try:
+        with get_session() as session:
+            doc = DocumentCRUD.update(session, doc_id, **kwargs)
+            if not doc:
+                return None
+            if indexed_fields.intersection(kwargs):
+                from utils.search_engine import index_document_in_session
+                index_document_in_session(
+                    session=session,
+                    doc_id=doc.id,
+                    title=doc.title or "",
+                    doc_no=doc.doc_no or "",
+                    department=doc.department or "",
+                    issuing_org=doc.issuing_org or "",
+                    description=doc.description or "",
+                    content_text=doc.content_text or "",
+                )
+            return _to_dto(doc)
+    except Exception as e:
+        logger.error(f"文档更新失败 doc_id={doc_id}: {e}")
+        return None
 
 
 # ── 删除/恢复 ──────────────────────────────────────────────
@@ -339,31 +362,51 @@ def batch_restore(doc_ids: List[int]) -> dict:
 
 def batch_permanent_delete(doc_ids: List[int]) -> dict:
     """批量永久删除"""
+    from database.models import Document
+    from utils.search_engine import remove_from_index_in_session
+
     success_ids = []
+    files_to_delete = []
     failed = 0
     with get_session() as session:
         for doc_id in doc_ids:
             try:
-                row = session.execute(
-                    sql_text("SELECT file_path FROM documents WHERE id=:id"), {"id": doc_id}
-                ).fetchone()
-                if row:
-                    _delete_file(_resolve_path(row[0]))
-                    session.execute(sql_text("DELETE FROM documents WHERE id=:id"), {"id": doc_id})
+                with session.begin_nested():
+                    doc = session.query(Document).filter(Document.id == doc_id).first()
+                    if not doc:
+                        failed += 1
+                        continue
+
+                    file_path = doc.file_path
+                    for association in doc.tag_associations:
+                        if association.tag and association.tag.usage_count > 0:
+                            association.tag.usage_count -= 1
+                    session.delete(doc)
+                    remove_from_index_in_session(session, doc_id)
+                    session.flush()
+
+                    # 兼容旧绝对路径和新相对路径，仅删除最后一个引用对应的文件。
+                    if file_path:
+                        target_path = _normalized_path(file_path)
+                        remaining_paths = session.query(Document.file_path).filter(
+                            Document.file_path != ""
+                        ).all()
+                        still_referenced = any(
+                            _normalized_path(row[0]) == target_path
+                            for row in remaining_paths if row[0]
+                        )
+                        if not still_referenced:
+                            files_to_delete.append(_resolve_path(file_path))
+
                     success_ids.append(doc_id)
-                else:
-                    failed += 1
             except Exception as e:
                 logger.error(f"批量永久删除失败 doc_id={doc_id}: {e}")
                 failed += 1
-    # 从 FTS5 索引中移除（只处理成功删除的文档）
-    if success_ids:
-        from utils.search_engine import remove_from_index
-        for doc_id in success_ids:
-            try:
-                remove_from_index(doc_id)
-            except Exception as e:
-                logger.debug(f"FTS5 索引移除失败 doc_id={doc_id}: {e}")
+
+    # 数据库事务提交成功后再删除物理文件，避免删除失败导致记录仍在但文件丢失。
+    for file_path in set(files_to_delete):
+        _delete_file(file_path)
+
     return {"success": len(success_ids), "failed": failed}
 
 

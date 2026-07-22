@@ -1,6 +1,6 @@
 [project]
 name = "regulation-manager"
-version = "1.2.1"
+version = "1.2.2"
 description = "制度汇编管理系统"
 requires-python = ">=3.8"
 dependencies = [
