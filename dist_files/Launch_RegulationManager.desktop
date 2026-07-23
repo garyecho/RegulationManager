@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=打开制度汇编管理系统
+Name[zh_CN]=打开制度汇编管理系统
+Comment=双击启动制度汇编管理系统
+Comment[zh_CN]=双击启动制度汇编管理系统
+Exec=/bin/sh -c "exec \"$(dirname \"$1\")/start.sh\"" dummy %k
+Terminal=false
+Categories=Office;
+StartupNotify=true

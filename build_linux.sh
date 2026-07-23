@@ -92,8 +92,12 @@ build() {
     cp -f dist_files/CHANGELOG.txt "dist/$OUTPUT_NAME/"
     cp -f dist_files/start.sh "dist/$OUTPUT_NAME/"
     cp -f dist_files/install.sh "dist/$OUTPUT_NAME/"
+    cp -f dist_files/Launch_RegulationManager.desktop "dist/$OUTPUT_NAME/"
+    cp -f dist_files/Install_RegulationManager.desktop "dist/$OUTPUT_NAME/"
     chmod +x "dist/$OUTPUT_NAME/start.sh"
     chmod +x "dist/$OUTPUT_NAME/install.sh"
+    chmod +x "dist/$OUTPUT_NAME/Launch_RegulationManager.desktop"
+    chmod +x "dist/$OUTPUT_NAME/Install_RegulationManager.desktop"
 
     # Linux 下 Qt 插件路径可能不同，清理不必要的文件
     rm -rf "dist/$OUTPUT_NAME/_internal/PyQt5/Qt5/qml" 2>/dev/null || true

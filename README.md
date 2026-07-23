@@ -1,4 +1,4 @@
-# 制度汇编管理系统 v1.2.2
+# 制度汇编管理系统 v1.2.3
 
 单机版制度文件集中管理工具，面向金融/企业合规部门，支持分类管理、全文搜索（含正文检索）、批量导入、回收站等功能。支持 Windows 和银河麒麟操作系统。
 
@@ -219,8 +219,10 @@ dist/
 │   └── ...
 └── RegulationManager_Kylin_x64/    # 银河麒麟 x86_64
     ├── RegulationManager          # Linux 可执行文件
-    ├── start.sh                   # 双击启动脚本
-    ├── install.sh                 # 安装到开始菜单
+    ├── Launch_RegulationManager.desktop   # 双击直接启动
+    ├── Install_RegulationManager.desktop  # 图形化安装到开始菜单
+    ├── start.sh                   # 启动脚本（终端兜底）
+    ├── install.sh                 # 安装脚本（终端兜底）
     ├── _internal/
     └── data/
 ```
@@ -240,6 +242,24 @@ chmod +x build_linux.sh && ./build_linux.sh
 1. **必须**把 `data/` 文件夹和 exe 一起分发
 2. 数据库中的文件路径已存为相对路径，换电脑可直接使用
 3. 接收者无需重新导入，直接运行即可查看所有制度
+
+### 麒麟零基础用户使用
+
+推荐分发容器内生成的 `.tar.gz` 压缩包，避免 Windows 压缩软件丢失 Linux 执行权限。用户解压后：
+
+1. 双击 `Launch_RegulationManager.desktop` 直接试用；首次出现“允许启动”或“信任并启动”时选择允许。
+2. 需要长期使用时，双击 `Install_RegulationManager.desktop`；银河麒麟会通过 `pkexec` 弹出图形化密码框，认证后自动安装到 `/opt/RegulationManager` 并创建开始菜单入口。
+3. 安装脚本会将 `data/` 目录交给实际登录用户，确保普通用户可以写入数据库、日志、备份和导入文件。
+4. 若系统策略禁止执行桌面启动器，用户可在文件夹空白处右键选择“在终端中打开”，执行 `./start.sh` 或 `./install.sh`。Linux 输入密码时不显示字符或星号属于正常现象。
+
+两个启动器的数据位置不同，不能混用：
+
+| 启动方式 | 适用场景 | 程序与数据位置 | 是否需要密码 |
+|------|------|------|------|
+| `Launch_RegulationManager.desktop` | 临时试用 | 当前解压目录及其 `data/` | 否 |
+| `Install_RegulationManager.desktop` | 长期使用 | `/opt/RegulationManager/` 及其 `data/` | 首次安装需要 |
+
+安装时会复制当前解压目录的全部数据到 `/opt/RegulationManager/data/`。安装后应统一从开始菜单启动；如果又双击原解压目录中的启动器，会打开另一套旧数据，并非数据丢失。
 
 ## 使用说明
 
@@ -295,13 +315,24 @@ chmod +x build_linux.sh && ./build_linux.sh
 **Q: pip 安装报 SSL/proxy 错误？**
 用国内镜像：`pip install ... -i http://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn`
 
-**Q: 麒麟系统双击 start.sh 没反应？**
-右键 start.sh → 属性 → 权限 → 勾选"允许作为程序执行文件"，或在终端执行：`chmod +x start.sh && ./start.sh`
+**Q: 麒麟系统安装后数据“丢失”了？**
+直接启动器使用解压目录下的 `data/`，开始菜单程序使用 `/opt/RegulationManager/data/`，两者不会自动同步。安装后请统一从开始菜单启动。
+
+**Q: 麒麟系统双击启动器没有反应或打开了文本编辑器？**
+右键 `Launch_RegulationManager.desktop`，选择“允许启动”或“属性 → 权限 → 允许作为程序执行”。仍无法启动时，在当前文件夹右键选择“在终端中打开”，执行：`chmod +x start.sh && ./start.sh`
 
 **Q: 麒麟系统无法使用中文输入法？**
 确保系统已安装 fcitx 输入法框架，执行：`sudo apt install fcitx-frontend-qt5 -y`
 
 ## 版本历史
+
+### v1.2.3 (2026-07)
+
+- **新增**: 麒麟图形启动器 `Launch_RegulationManager.desktop`，零基础用户可双击直接启动
+- **新增**: 麒麟图形安装器 `Install_RegulationManager.desktop`，使用 `pkexec` 弹出系统图形密码认证框
+- **优化**: 启动和安装脚本在图形环境中使用 `zenity` 显示中文成功或错误提示
+- **优化**: 安装器无图形授权工具时提供明确的终端兜底指引
+- **文档**: 说明直接启动与开始菜单安装的数据保存位置和切换注意事项
 
 ### v1.2.2 (2026-07)
 

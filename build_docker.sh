@@ -36,8 +36,12 @@ cp dist_files/backup.txt "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || 
 cp dist_files/CHANGELOG.txt "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
 cp dist_files/start.sh "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
 cp dist_files/install.sh "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
+cp dist_files/Launch_RegulationManager.desktop "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
+cp dist_files/Install_RegulationManager.desktop "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
 chmod +x "dist/RegulationManager_${ARCH_LABEL}/start.sh"
 chmod +x "dist/RegulationManager_${ARCH_LABEL}/install.sh"
+chmod +x "dist/RegulationManager_${ARCH_LABEL}/Launch_RegulationManager.desktop"
+chmod +x "dist/RegulationManager_${ARCH_LABEL}/Install_RegulationManager.desktop"
 
 # Copy fcitx input method plugin for Chinese input on Kylin
 FCITX_PLUGIN=$(find /usr -name "libfcitxplatforminputcontextplugin.so" 2>/dev/null | head -1)

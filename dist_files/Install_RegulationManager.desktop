@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=安装制度汇编管理系统到开始菜单
+Name[zh_CN]=安装制度汇编管理系统到开始菜单
+Comment=安装后可从开始菜单直接打开程序
+Comment[zh_CN]=安装后可从开始菜单直接打开程序
+Exec=/bin/sh -c "exec \"$(dirname \"$1\")/install.sh\"" dummy %k
+Terminal=false
+Categories=Office;
+StartupNotify=true

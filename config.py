@@ -33,7 +33,7 @@ for d in [DATA_DIR, DOCUMENTS_DIR, BACKUPS_DIR, LOG_DIR]:
 
 # ── 应用信息 ──
 APP_NAME = "制度汇编管理系统"
-APP_VERSION = "1.2.2"
+APP_VERSION = "1.2.3"
 
 # ── 数据库 ──
 DB_PATH = DATA_DIR / "regulation.db"

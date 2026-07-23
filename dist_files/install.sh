@@ -10,6 +10,22 @@ INSTALL_DIR="${REGULATION_INSTALL_DIR:-/opt/RegulationManager}"
 DESKTOP_FILE="${REGULATION_DESKTOP_FILE:-/usr/share/applications/regulation-manager.desktop}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+show_info() {
+    if command -v zenity &>/dev/null && [ -n "${DISPLAY:-}" ]; then
+        zenity --info --title="$APP_NAME" --text="$1" --timeout=12
+    else
+        echo "$1"
+    fi
+}
+
+show_error() {
+    if command -v zenity &>/dev/null && [ -n "${DISPLAY:-}" ]; then
+        zenity --error --title="$APP_NAME" --text="$1"
+    else
+        echo "错误：$1" >&2
+    fi
+}
+
 echo "=========================================="
 echo "  $APP_NAME — 安装到开始菜单"
 echo "=========================================="
@@ -21,10 +37,10 @@ if [ "$EUID" -ne 0 ]; then
     INSTALL_USER="$(id -un)"
     if command -v pkexec &>/dev/null; then
         exec pkexec /usr/bin/env REGULATION_INSTALL_USER="$INSTALL_USER" "$SCRIPT_DIR/install.sh"
-    elif command -v sudo &>/dev/null; then
+    elif command -v sudo &>/dev/null && [ -t 0 ]; then
         exec sudo /usr/bin/env REGULATION_INSTALL_USER="$INSTALL_USER" "$SCRIPT_DIR/install.sh"
     else
-        echo "请以 root 身份运行此脚本：sudo ./install.sh"
+        show_error "系统未提供图形授权工具 pkexec。请在本文件夹空白处右键，选择“在终端中打开”，然后输入 ./install.sh 并按 Enter。"
         exit 1
     fi
 fi
@@ -81,6 +97,7 @@ echo "  可以在开始菜单中找到「$APP_NAME」"
 echo "  程序文件位于: $INSTALL_DIR/"
 echo "=========================================="
 echo ""
+show_info "安装完成！现在可以从开始菜单中打开「$APP_NAME」。"
 echo "提示：按 Enter 退出..."
 if [ -t 0 ]; then
     read -r
