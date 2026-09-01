@@ -10,9 +10,7 @@ wheels/
 
 # Virtual environments
 .venv/
-venv/
-venv38/
-venv38_x86/
+venv*/
 
 # IDE
 .vscode/
@@ -39,3 +37,10 @@ data/
 *_check.txt
 test_encoding.txt
 *.bak
+*.log
+
+# Test caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
