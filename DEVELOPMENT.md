@@ -107,6 +107,7 @@ git pull github master         # 家里机器上：拉取公司同步的改动
 | `.doc` 文档提取不到正文 | 确认安装了 `antiword`；部分老 .doc 只能靠正则回退，效果打折属正常 |
 | 提交时把 data/ 加进暂存 | `data/`、`*.db`、`venv*`、`build/`、`dist/` 已在 `.gitignore`，正常情况下不会出现；若出现请检查是否有文件被强制 `git add -f` |
 | 公司网络推 GitHub 报 `Failed to connect to github.com port 443` | 公司出口对 GitHub 直连不稳定，已为 git 配置本机代理（**仅对 github.com 生效**，内网 gitlab 直连不受影响）：`git config --global http.https://github.com.proxy http://127.0.0.1:7890`。需本机代理软件（如 Clash）在运行；若代理软件未启动，先启动它再推送 |
+| 代理下报 `schannel: failed to receive handshake, SSL/TLS connection failed` | git 走代理时 Windows schannel 后端握手失败，已切换为 OpenSSL 后端：`git config --global http.sslBackend openssl` |
 
 ## 五、打包（构建产物）
 
