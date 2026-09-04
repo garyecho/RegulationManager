@@ -88,7 +88,7 @@ git commit -m "feat: 新增xxx功能"   # 3. 提交
 
 ```bash
 git push                       # 公司：upstream 是 gitlab，直接推内网
-git push github master         # 家里：内网连不上，推 GitHub
+git push origin master         # 家里：内网连不上，推 GitHub
 ```
 
 ### 换机器同步
