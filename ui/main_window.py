@@ -20,7 +20,7 @@ from ui.sidebar import Sidebar
 from ui.document_panel import DocumentPanel, MODE_MANAGE, MODE_BROWSE, MODE_RECYCLE
 from ui.add_edit_dialog import AddEditDialog
 from ui.components.toast import Toast
-from ui.styles import SEARCH_BAR_CONTAINER_LIGHT, DIALOG_BTN_SECONDARY, _FONT
+from ui.styles import _FONT
 from core import document_service, category_service, search_service, statistics_service
 from models import SearchFilter
 

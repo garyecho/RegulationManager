@@ -1,7 +1,7 @@
 """
 左侧边栏 — 分类树 + 快捷入口 + 统计摘要
 """
-from typing import Dict, Optional
+from typing import Optional
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
@@ -9,8 +9,6 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTreeWidget, QTreeWidgetItem,
     QPushButton, QFrame, QMenu
 )
-
-from ui.styles import SIDEBAR_CAT_LABEL_LIGHT, SIDEBAR_STATS_LIGHT, SIDEBAR_ADD_CAT_BTN
 
 
 class Sidebar(QWidget):
@@ -24,7 +22,6 @@ class Sidebar(QWidget):
         self.setObjectName("Sidebar")
         self.setFixedWidth(260)
         self._current_cat_id: Optional[int] = None
-        self._category_items: Dict[int, QTreeWidgetItem] = {}
         self._setup_ui()
 
     def _setup_ui(self):
@@ -138,7 +135,6 @@ class Sidebar(QWidget):
 
     def load_categories(self, categories: list, total_docs: int = 0):
         self._tree.clear()
-        self._category_items.clear()
 
         def add_items(parent_item, cats):
             for cat in cats:
@@ -150,17 +146,12 @@ class Sidebar(QWidget):
                     parent_item.addChild(item)
                 else:
                     self._tree.addTopLevelItem(item)
-                self._category_items[cat.id] = item
                 if cat.children:
                     add_items(item, cat.children)
 
         add_items(None, categories)
         self._tree.expandAll()
         self._stats_label.setText(f"  共 {total_docs} 项制度")
-
-    def select_category(self, cat_id: int):
-        if cat_id in self._category_items:
-            self._tree.setCurrentItem(self._category_items[cat_id])
 
     def select_nav(self, nav_id: int):
         btn_map = {0: self._btn_all, -1: self._btn_recent, -2: self._btn_recycle, -3: self._btn_stats}

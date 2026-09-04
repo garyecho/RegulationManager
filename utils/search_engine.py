@@ -227,12 +227,3 @@ def rebuild_index(progress_callback=None):
                 progress_callback(i + 1, total, f"正在索引: {row[1][:20] if row[1] else '文档'}")
 
     logger.info("FTS5 索引已重建（含 jieba 分词）")
-
-
-def rebuild_full(progress_callback=None):
-    """完整重建：补提正文 + 重建 FTS5 索引"""
-    from database.migrations import _extract_missing_text, _setup_fts5
-    _extract_missing_text(progress_callback=progress_callback)
-    _setup_fts5()
-    rebuild_index(progress_callback=progress_callback)
-    logger.info("完整重建 FTS5 完成")

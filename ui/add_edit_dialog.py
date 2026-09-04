@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (
 from models import DocumentData, CategoryData
 from config import DOC_STATUS_LABELS
 from ui.components.tag_input import TagInput
-from ui.styles import FILE_LABEL_DEFAULT, FILE_LABEL_SELECTED_LIGHT, DIALOG_BTN_SECONDARY, _FONT
+from ui.styles import _FONT
 from utils.text_parser import extract_doc_no, extract_title_and_doc_no
 
 
@@ -30,10 +30,6 @@ class ClickFocusComboBox(QComboBox):
             return
         super().wheelEvent(event)
 
-    def enterEvent(self, event):
-        # 不自动获取焦点，仅改变外观
-        super().enterEvent(event)
-
 
 class ClickFocusDateEdit(QDateEdit):
     """日期选择器：鼠标悬停时滚轮无效，需先点击"""
@@ -42,9 +38,6 @@ class ClickFocusDateEdit(QDateEdit):
             event.ignore()
             return
         super().wheelEvent(event)
-
-    def enterEvent(self, event):
-        super().enterEvent(event)
 
 
 class AddEditDialog(QDialog):

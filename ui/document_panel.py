@@ -3,7 +3,6 @@
 三种模式：manage（管理）、browse（浏览）、recycle（回收站）
 """
 from typing import List, Optional, Set
-import re
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
@@ -17,7 +16,6 @@ from models import DocumentData, SearchResult
 from config import DOC_STATUS_LABELS
 from ui.components.card_widget import DocumentCard
 from utils.text_utils import highlight_text
-from ui.styles import _FONT
 
 # ── 面板模式常量 ──
 MODE_MANAGE = "manage"    # 全部制度 / 分类列表
@@ -41,7 +39,6 @@ class DocumentPanel(QWidget):
     document_deleted = pyqtSignal(int)
     document_edit_requested = pyqtSignal(int)
     page_changed = pyqtSignal(int)
-    view_mode_changed = pyqtSignal(str)
     batch_delete_requested = pyqtSignal(list)
     batch_permanent_delete_requested = pyqtSignal(list)
     batch_restore_requested = pyqtSignal(list)
@@ -336,7 +333,6 @@ class DocumentPanel(QWidget):
             self._btn_card.setObjectName("ViewBtnActive")
             self._select_all_bar.hide()
             self._rebuild_cards()
-        self.view_mode_changed.emit(mode)
 
     def _on_sort(self, field: str):
         self._current_sort = field

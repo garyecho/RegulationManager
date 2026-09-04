@@ -2,7 +2,7 @@
 文本解析工具 — 智能文号提取
 """
 import re
-from typing import Optional, Tuple
+from typing import Tuple
 
 
 # ── 文号正则模式（按匹配优先级排列）──
@@ -137,12 +137,3 @@ def detect_status_from_name(text: str) -> str:
         if kw in text:
             return "expired"
     return ""
-
-
-# ── 兼容旧接口 ──
-
-def parse_doc_filename(name: str) -> tuple:
-    """从文件名解析标题和文号（兼容旧调用）"""
-    from pathlib import Path
-    stem = Path(name).stem
-    return extract_title_and_doc_no(stem)
