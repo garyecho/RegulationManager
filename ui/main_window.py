@@ -114,6 +114,9 @@ class MainWindow(QMainWindow):
         self._stats_panel.hide()
         self._content_layout.addWidget(self._stats_panel)
 
+        # 评级打分卡面板（初始隐藏，首次进入时才构建）
+        self._scorecard_panel = None
+
         right_layout.addWidget(self._content_stack, 1)
 
         main_layout.addWidget(right_widget, 1)
@@ -357,6 +360,11 @@ class MainWindow(QMainWindow):
             self._current_view = "stats"
             self._show_stats()
             return
+        elif cat_id == -4:
+            # 评级打分卡
+            self._current_view = "scorecard"
+            self._show_scorecard()
+            return
         else:
             self._current_category_id = cat_id
             self._current_view = "list"
@@ -368,9 +376,19 @@ class MainWindow(QMainWindow):
         self._refresh_list()
 
     def _show_doc_panel(self):
-        """显示文档列表面板，隐藏统计面板"""
+        """显示文档列表面板，隐藏统计/打分卡面板"""
         self._stats_panel.hide()
+        if self._scorecard_panel:
+            self._scorecard_panel.hide()
         self._doc_panel.show()
+
+    def _on_scorecard_open_document(self, doc_id: int):
+        """打分卡条目请求打开关联制度（复用文档打开逻辑）"""
+        doc = document_service.get_document(doc_id)
+        if not doc or not doc.file_path or not os.path.exists(doc.file_path):
+            Toast.error(self, "关联文件不存在或已被移动")
+            return
+        self._on_doc_opened(doc_id)
 
     def _show_recent(self):
         """显示最近使用（按更新时间倒序，取前50）"""
@@ -391,9 +409,24 @@ class MainWindow(QMainWindow):
     def _show_stats(self):
         """显示统计看板"""
         self._doc_panel.hide()
+        if self._scorecard_panel:
+            self._scorecard_panel.hide()
         self._stats_panel.show()
         self._build_stats_cards()
         self._statusbar.showMessage("统计看板")
+
+    def _show_scorecard(self):
+        """显示评级打分卡面板"""
+        self._doc_panel.hide()
+        self._stats_panel.hide()
+        if self._scorecard_panel is None:
+            from ui.scorecard_panel import ScorecardPanel
+            self._scorecard_panel = ScorecardPanel()
+            self._scorecard_panel.document_open_requested.connect(self._on_scorecard_open_document)
+            self._content_layout.addWidget(self._scorecard_panel)
+        self._scorecard_panel.show()
+        self._scorecard_panel.reload_scorecards()
+        self._statusbar.showMessage("央行评级标准打分卡")
 
     def _on_sidebar_action(self, action: str):
         """侧边栏动作"""

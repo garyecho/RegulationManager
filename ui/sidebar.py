@@ -68,6 +68,12 @@ class Sidebar(QWidget):
         self._btn_stats = btn_stats
         layout.addWidget(btn_stats)
 
+        btn_scorecard = QPushButton("  🏦  评级打分卡")
+        btn_scorecard.setCheckable(True)
+        btn_scorecard.clicked.connect(lambda: self._on_nav_clicked(btn_scorecard, -4))
+        self._btn_scorecard = btn_scorecard
+        layout.addWidget(btn_scorecard)
+
         sep2 = QFrame()
         sep2.setObjectName("SidebarSeparator")
         sep2.setFrameShape(QFrame.HLine)
@@ -101,7 +107,8 @@ class Sidebar(QWidget):
         layout.addWidget(btn_add_cat)
 
     def _on_nav_clicked(self, btn, cat_id):
-        for b in [self._btn_all, self._btn_recent, self._btn_recycle, self._btn_stats]:
+        for b in [self._btn_all, self._btn_recent, self._btn_recycle, self._btn_stats,
+                  self._btn_scorecard]:
             if b != btn:
                 b.setChecked(False)
         self._tree.clearSelection()
@@ -109,7 +116,8 @@ class Sidebar(QWidget):
         self.category_selected.emit(cat_id)
 
     def _on_category_clicked(self, item, column):
-        for b in [self._btn_all, self._btn_recent, self._btn_recycle, self._btn_stats]:
+        for b in [self._btn_all, self._btn_recent, self._btn_recycle, self._btn_stats,
+                  self._btn_scorecard]:
             b.setChecked(False)
         cat_id = item.data(0, Qt.UserRole)
         if cat_id is not None:
@@ -154,6 +162,7 @@ class Sidebar(QWidget):
         self._stats_label.setText(f"  共 {total_docs} 项制度")
 
     def select_nav(self, nav_id: int):
-        btn_map = {0: self._btn_all, -1: self._btn_recent, -2: self._btn_recycle, -3: self._btn_stats}
+        btn_map = {0: self._btn_all, -1: self._btn_recent, -2: self._btn_recycle,
+                   -3: self._btn_stats, -4: self._btn_scorecard}
         if nav_id in btn_map:
             self._on_nav_clicked(btn_map[nav_id], nav_id)

@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 def init_database():
     """创建表结构 + FTS5 虚拟表"""
     Base.metadata.create_all(engine)
+    _migrate_scorecard_is_auto()
 
     from database import get_session
     with get_session() as session:
@@ -26,6 +27,32 @@ def init_database():
 
     # FTS5 和触发器单独处理，避免事务回滚影响其他操作
     _setup_fts5()
+
+
+def _migrate_scorecard_is_auto():
+    """旧库补 is_auto 列（新建库由 create_all 自带，无需处理）"""
+    from database import get_session
+    with get_session() as session:
+        cols = [row[1] for row in session.execute(
+            text("PRAGMA table_info(scorecard_check_documents)")
+        )]
+        if cols and "is_auto" not in cols:
+            session.execute(text(
+                "ALTER TABLE scorecard_check_documents "
+                "ADD COLUMN is_auto BOOLEAN NOT NULL DEFAULT 0"
+            ))
+            logger.info("已为 scorecard_check_documents 补充 is_auto 列")
+
+    with get_session() as session:
+        cols = [row[1] for row in session.execute(
+            text("PRAGMA table_info(scorecard_checks)")
+        )]
+        if cols and "ignored_auto_ids" not in cols:
+            session.execute(text(
+                "ALTER TABLE scorecard_checks "
+                "ADD COLUMN ignored_auto_ids TEXT NOT NULL DEFAULT '[]'"
+            ))
+            logger.info("已为 scorecard_checks 补充 ignored_auto_ids 列")
 
 
 def _setup_fts5():
@@ -54,6 +81,7 @@ def _setup_fts5():
     _migrate_paths()
     _extract_missing_text()
     _cleanup_obsolete_categories()
+    seed_rating_scorecards()
 
     # 启动时自动重建 FTS5 索引（每次 DROP + CREATE 后都需要）
     from utils.search_engine import rebuild_index
@@ -141,3 +169,110 @@ def _cleanup_obsolete_categories():
                     logger.info(f"已清理废弃分类：{name}")
     except Exception as e:
         logger.warning(f"分类清理失败（不影响正常使用）: {e}")
+
+
+# ── 央行评级打分卡内置数据 ──
+
+SCORECARD_FILES = ("scorecard_city.json", "scorecard_village.json")
+
+
+def _scorecard_fingerprint(rating_dir):
+    """对两份 JSON 内容算 MD5，作为内置数据版本标记"""
+    import hashlib
+    digest = hashlib.md5()
+    for filename in SCORECARD_FILES:
+        path = rating_dir / filename
+        if path.exists():
+            digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def _wipe_scorecard_tables(session):
+    """清空打分卡域 6 张表（依赖顺序删除）"""
+    from database.models import (
+        ScorecardCheckDocument, ScorecardCheck, ScorecardItem,
+        ScorecardSection, ScorecardModule, Scorecard,
+    )
+    for model in (ScorecardCheckDocument, ScorecardCheck, ScorecardItem,
+                  ScorecardSection, ScorecardModule, Scorecard):
+        session.query(model).delete(synchronize_session=False)
+    session.flush()
+
+
+def seed_rating_scorecards():
+    """把内置打分卡 JSON 灌入数据库。
+
+    幂等策略：以 JSON 内容指纹标记打分卡版本；若库里打分卡不存在、
+    或指纹与当前 JSON 不一致（内置数据更新/修正过），则清空打分卡域重灌。
+    制度文档等其他表不受影响。
+    """
+    import json
+    import config
+    from database import get_session
+    from database.models import (
+        Scorecard, ScorecardModule, ScorecardSection, ScorecardItem, ScorecardCheck,
+    )
+
+    try:
+        rating_dir = config.RESOURCES_DIR / "rating"
+        fingerprint = _scorecard_fingerprint(rating_dir)
+        marker = "seed:" + fingerprint
+
+        with get_session() as session:
+            existing = session.query(Scorecard).first()
+            if existing and existing.description == marker:
+                return  # 已是当前版本，跳过
+
+            if existing is not None:
+                logger.info("打分卡内置数据版本变化，重新灌入…")
+                _wipe_scorecard_tables(session)
+                session.expunge_all()  # 清身份映射，避免行 ID 复用冲突
+
+            total_checks = 0
+            for filename in SCORECARD_FILES:
+                path = rating_dir / filename
+                if not path.exists():
+                    logger.warning(f"打分卡数据文件缺失，跳过：{path}")
+                    continue
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+
+                scorecard = Scorecard(name=data["name"], description=marker)
+                session.add(scorecard)
+                session.flush()
+
+                for m in data.get("modules", []):
+                    module = ScorecardModule(
+                        scorecard_id=scorecard.id, name=m["name"], sort_order=m.get("sort", 0),
+                    )
+                    session.add(module)
+                    session.flush()
+                    for s in m.get("sections", []):
+                        section = ScorecardSection(
+                            module_id=module.id, name=s["name"], sort_order=s.get("sort", 0),
+                        )
+                        session.add(section)
+                        session.flush()
+                        for i in s.get("items", []):
+                            item = ScorecardItem(
+                                section_id=section.id, name=i["name"], sort_order=i.get("sort", 0),
+                            )
+                            session.add(item)
+                            session.flush()
+                            for c in i.get("checks", []):
+                                session.add(ScorecardCheck(
+                                    item_id=item.id,
+                                    content=c.get("content", ""),
+                                    key_points=c.get("key_points", ""),
+                                    regulation_basis=c.get("regulation_basis", ""),
+                                    review_materials=c.get("review_materials", ""),
+                                    sort_order=c.get("sort", 0),
+                                ))
+                                total_checks += 1
+                session.flush()
+                logger.info(f"已灌入打分卡：{data['name']}")
+
+            if total_checks:
+                logger.info(f"打分卡内置数据初始化完成，共 {total_checks} 条检查项")
+    except Exception as e:
+        logger.warning(f"打分卡内置数据灌入失败（不影响其他功能）: {e}")

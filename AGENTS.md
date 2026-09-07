@@ -34,20 +34,23 @@ uv run python main.py
 main.py                 → App entry, creates MainWindow
 config.py               → All paths, constants, DB config (supports PyInstaller)
 database/
-  models.py             → 4 ORM tables (categories, tags, documents, document_tags)
+  models.py             → 10 ORM tables（4 文档域 + 6 打分卡域）
   crud.py               → CRUD operations
-  migrations.py         → DB init + FTS5 setup + path/text migration
+  migrations.py         → DB init + FTS5 setup + path/text migration + 打分卡内置数据灌入
 core/
   document_service.py   → Document lifecycle (upload, search, delete, batch ops)
   category_service.py   → Category tree operations
   search_service.py     → FTS5 full-text search with LIKE fallback
   statistics_service.py → Stats aggregation
+  scorecard_service.py  → 央行评级打分卡：树查询/编辑/制度关联/关键词搜索/引用自动识别超链
 ui/
   main_window.py        → Menu + toolbar + doc list + stats dashboard
   sidebar.py            → Category tree navigation
   document_panel.py     → Document list with pagination + batch selection
   add_edit_dialog.py    → Add/edit document form
   settings_dialog.py    → Settings (font size etc.)
+  scorecard_panel.py    → 打分卡面板（左树钻取 + 右详情 + 搜索定位）
+  scorecard_edit_dialog.py → 打分卡条目编辑 + 制度关联选择器
   components/           → Reusable widgets (toast, cards, tag input)
   styles.py             → QSS style constants
 utils/
@@ -56,7 +59,9 @@ utils/
   text_parser.py        → Title/doc_no extraction from filenames
   text_extractor.py     → Text extraction from doc/docx/pdf (no Windows-only deps)
   text_utils.py         → Misc text helpers
-models/                 → Dataclass DTOs (DocumentData, CategoryData, SearchFilter, etc.)
+models/                 → Dataclass DTOs (DocumentData, CategoryData, SearchFilter, Scorecard* 等)
+resources/rating/       → 打分卡内置初始数据（两份 JSON，首启灌库）
+tools/                  → 开发期一次性脚本（xls → 打分卡 JSON，不随应用分发）
 ```
 
 ## Data Flow
@@ -65,7 +70,7 @@ models/                 → Dataclass DTOs (DocumentData, CategoryData, SearchFi
 - SQLite DB at `data/regulation.db`
 - FTS5 virtual table `documents_fts` for full-text search
 - Relative paths stored in DB (relative to DATA_DIR), resolved at runtime
-- `migrations.py` runs on every startup: rebuilds FTS5 index, migrates absolute paths, backfills missing content text, cleans obsolete categories
+- `migrations.py` runs on every startup: rebuilds FTS5 index, migrates absolute paths, backfills missing content text, cleans obsolete categories, seeds 打分卡内置数据（幂等：仅首次）
 
 ## Key Conventions
 
@@ -79,8 +84,11 @@ models/                 → Dataclass DTOs (DocumentData, CategoryData, SearchFi
 
 ## Database Schema
 
-4 ORM tables: `categories`, `tags`, `documents`, `document_tags`（没有 document_versions 表）
-FTS5 table: `documents_fts`（独立模式，jieba 预分词后手动填充）
+文档域 4 表：`categories`、`tags`、`documents`、`document_tags`（没有 document_versions 表）
+打分卡域 6 表：`scorecards`（银行类型）→ `scorecard_modules` → `scorecard_sections`（一级指标）
+→ `scorecard_items`（二级指标）→ `scorecard_checks`（评级内容+评分要点/依据/材料，含 `ignored_auto_ids` JSON 字段），
+外加 `scorecard_check_documents`（检查项 ↔ 制度文档 M:N 关联，含 `is_auto` 标记自动/手动关联）
+FTS5 table: `documents_fts`（独立模式，jieba 预分词后手动填充）；打分卡搜索走 LIKE（数据量 ~400 行）
 
 ## Incomplete Features
 

@@ -1,6 +1,6 @@
-# 制度汇编管理系统 v1.2.3
+# 制度汇编管理系统 v1.3.0
 
-单机版制度文件集中管理工具，面向金融/企业合规部门，支持分类管理、全文搜索（含正文检索）、批量导入、回收站等功能。支持 Windows 和银河麒麟操作系统。
+单机版制度文件集中管理工具，面向金融/企业合规部门，支持分类管理、全文搜索（含正文检索）、批量导入、回收站、央行评级打分卡等功能。支持 Windows 和银河麒麟操作系统。
 
 ## 功能概览
 
@@ -20,6 +20,7 @@
 | 数据备份 | 一键备份/恢复，ZIP 格式 |
 | 界面设置 | 字体大小调节（10-18px），实时预览，设置持久化 |
 | 样式管理 | 浅色现代企业级 UI，样式集中在 `light.qss` 统一管理 |
+| 评级打分卡 | 央行评级标准打分卡查询、搜索、编辑、制度关联、引用自动识别超链 |
 | 打包分发 | 支持 Windows x64/x86 + 银河麒麟 x86_64 多平台打包，数据使用相对路径，可直接分发 |
 
 ## 支持格式
@@ -38,18 +39,19 @@ RegulationManager/
 ├── config.py                      # 全局配置（路径/数据库/常量）
 │
 ├── database/                      # 数据层
-│   ├── models.py                  # SQLAlchemy ORM 模型（Document/Category/Tag）
+│   ├── models.py                  # SQLAlchemy ORM 模型（Document/Category/Tag/Scorecard*）
 │   ├── crud.py                    # CRUD 操作（DocumentCRUD/CategoryCRUD/TagCRUD）
-│   └── migrations.py              # 数据库初始化 + FTS5 索引 + 路径迁移 + 正文补提
+│   └── migrations.py              # 数据库初始化 + FTS5 索引 + 路径迁移 + 正文补提 + 打分卡灌库
 │
 ├── core/                          # 业务逻辑层
 │   ├── document_service.py        # 制度生命周期（上传/编辑/删除/搜索/备份）
 │   ├── category_service.py        # 分类 CRUD
 │   ├── search_service.py          # 搜索服务（FTS5 查询）
-│   └── statistics_service.py      # 统计查询
+│   ├── statistics_service.py      # 统计查询
+│   └── scorecard_service.py       # 评级打分卡（浏览/编辑/关联/搜索/引用识别）
 │
 ├── models/                        # 数据传输对象
-│   └── __init__.py                # DocumentData/SearchResult/CategoryData 等 DTO
+│   └── __init__.py                # DocumentData/SearchResult/CategoryData/ScorecardData 等 DTO
 │
 ├── utils/                         # 工具层（无状态函数）
 │   ├── text_parser.py             # 文号智能提取 + 废止状态识别
@@ -63,15 +65,20 @@ RegulationManager/
 │   ├── document_panel.py          # 文档列表面板（表格/卡片视图+分页）
 │   ├── add_edit_dialog.py         # 新增/编辑对话框
 │   ├── styles.py                  # 样式常量（色板/字号/字体）
+│   ├── scorecard_panel.py         # 评级打分卡面板（左树钻取 + 右详情 + 搜索定位）
+│   ├── scorecard_edit_dialog.py   # 打分卡条目编辑 + 制度关联选择器
 │   └── components/
 │       ├── card_widget.py         # 卡片视图组件
 │       ├── tag_input.py           # 标签输入组件
 │       └── toast.py               # Toast 提示组件
 │
 ├── resources/
-│   └── styles/
-│       ├── light.qss              # 浅色主题（唯一样式入口）
-│       └── dark.qss               # 深色主题（备用）
+│   ├── styles/
+│   │   ├── light.qss              # 浅色主题（唯一样式入口）
+│   │   └── dark.qss               # 深色主题（备用）
+│   └── rating/
+│       ├── scorecard_city.json    # 城商/农商/民营 打分卡内置数据
+│       └── scorecard_village.json # 村镇银行打分卡内置数据
 │
 ├── data/                          # 运行时数据（不入版本控制）
 │   ├── regulation.db              # SQLite 数据库
@@ -283,12 +290,20 @@ chmod +x build_linux.sh && ./build_linux.sh
 - 备份：文件 → 备份制度库
 - 恢复：文件 → 恢复制度库 → 选择 .zip 备份文件
 
+### 评级打分卡
+- 入口：左侧导航栏「🏦 评级打分卡」
+- 浏览：选择银行类型（城商/农商/民营 或 村镇银行），逐层展开：模块 → 一级指标 → 二级指标 → 评级内容
+- 搜索：顶部搜索框输入关键词，定位到匹配的打分卡条目
+- 编辑：右键节点可重命名；点击检查项可编辑评级内容/评分要点/监管依据/需调阅材料
+- 制度关联：在检查项详情中关联已有制度文档，评分要点中的制度引用会自动识别并生成超链接
+- 打开关联制度：点击蓝色链接可直接打开对应制度文件
+
 ## 技术栈
 
 | 组件 | 技术 |
 |------|------|
 | GUI | PyQt5 5.15（兼容 Win7~Win11 / 麒麟 v10~v11） |
-| 数据库 | SQLite + SQLAlchemy |
+| 数据库 | SQLite + SQLAlchemy（16 张表：4 文档域 + 6 打分卡域 + FTS5 + 6 系统） |
 | 全文搜索 | SQLite FTS5 + jieba 中文分词 |
 | 正文提取 | PyMuPDF (PDF)、python-docx (DOCX) |
 | 打包 | PyInstaller 6.x (onedir) / Docker 容器构建 |
@@ -325,6 +340,17 @@ chmod +x build_linux.sh && ./build_linux.sh
 确保系统已安装 fcitx 输入法框架，执行：`sudo apt install fcitx-frontend-qt5 -y`
 
 ## 版本历史
+
+### v1.3.0 (2026-09)
+
+- **新增**: 央行评级标准打分卡模块，支持城商/农商/民营和村镇银行两套打分卡
+- **新增**: 打分卡树形浏览（模块→一级→二级→评级内容，逐层钻取）
+- **新增**: 打分卡关键词搜索，支持七处文本字段检索并定位到树节点
+- **新增**: 检查项编辑（评级内容/评分要点/监管依据/需调阅材料）
+- **新增**: 节点重命名（模块/一级/二级指标）
+- **新增**: 检查项与制度文档关联（手动关联 + 自动识别超链）
+- **新增**: 引用自动识别：正则提取制度引用 → 文号/标题匹配 → 蓝色可点击链接/灰色未匹配提示
+- **修复**: Excel 导入合并单元格导致评分要点/监管依据/需调阅材料大量为空
 
 ### v1.2.3 (2026-07)
 
