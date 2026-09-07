@@ -97,11 +97,9 @@ def main():
     from ui.main_window import MainWindow
     window = MainWindow()
 
-    # 对主窗口集中加载 QSS（根据保存的主题偏好 + 动态替换字体大小）
-    from PyQt5.QtCore import QSettings
-    theme = QSettings("RegulationManager", "RegulationManager").value("ui/theme", "light")
+    # 对主窗口集中加载 QSS（动态替换字体大小）
     import re
-    qss_path = config.RESOURCES_DIR / "styles" / f"{theme}.qss"
+    qss_path = config.RESOURCES_DIR / "styles" / "light.qss"
     if qss_path.exists():
         with open(qss_path, "r", encoding="utf-8") as f:
             qss_content = f.read()

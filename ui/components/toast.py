@@ -1,5 +1,5 @@
 """
-Toast 弹出提示组件 — 深色主题适配
+Toast 弹出提示组件
 """
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QLabel, QWidget

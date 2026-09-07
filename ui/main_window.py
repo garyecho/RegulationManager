@@ -236,10 +236,6 @@ class MainWindow(QMainWindow):
         # 视图菜单
         view_menu = menubar.addMenu("视图(&V)")
 
-        act_theme = QAction("切换深色/亮色主题", self)
-        act_theme.triggered.connect(self._toggle_theme)
-        view_menu.addAction(act_theme)
-
         # 工具菜单
         tools_menu = menubar.addMenu("工具(&T)")
 
@@ -1019,29 +1015,6 @@ class MainWindow(QMainWindow):
             Toast.success(self, "数据库初始化完成")
         except Exception as e:
             Toast.error(self, f"初始化失败: {e}")
-    def _toggle_theme(self):
-        """切换深色/亮色主题"""
-        from PyQt5.QtCore import QSettings
-        settings = QSettings("RegulationManager", "RegulationManager")
-        current = settings.value("ui/theme", "light")
-        new_theme = "dark" if current == "light" else "light"
-        settings.setValue("ui/theme", new_theme)
-        self._apply_theme(new_theme)
-        Toast.success(self, f"已切换为{'深色' if new_theme == 'dark' else '浅色'}主题")
-
-    def _apply_theme(self, theme: str):
-        """应用指定主题的 QSS"""
-        qss_file = f"{theme}.qss"
-        qss_path = config.RESOURCES_DIR / "styles" / qss_file
-        if qss_path.exists():
-            with open(qss_path, "r", encoding="utf-8") as f:
-                qss_content = f.read()
-            # 替换基础字体大小
-            from ui.settings_dialog import get_font_size
-            saved_size = get_font_size()
-            import re
-            qss_content = re.sub(r'font-size:\s*16px', f'font-size: {saved_size}px', qss_content)
-            self.setStyleSheet(qss_content)
 
     def _on_settings(self):
         """系统设置"""
