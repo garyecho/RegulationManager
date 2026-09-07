@@ -20,7 +20,6 @@ from ui.sidebar import Sidebar
 from ui.document_panel import DocumentPanel, MODE_MANAGE, MODE_BROWSE, MODE_RECYCLE
 from ui.add_edit_dialog import AddEditDialog
 from ui.components.toast import Toast
-from ui.styles import _FONT
 from core import document_service, category_service, search_service, statistics_service
 from models import SearchFilter
 
@@ -125,23 +124,36 @@ class MainWindow(QMainWindow):
         """创建统计看板"""
         panel = QWidget()
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(16)
+        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setSpacing(24)
 
-        title = QLabel("📊 统计看板")
-        title.setStyleSheet(f"font-size: 18px; font-weight: bold; color: #e2e8f0; font-family: {_FONT};")
-        layout.addWidget(title)
+        # 标题区
+        header = QWidget()
+        header_layout = QVBoxLayout(header)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(4)
+
+        title = QLabel("统计看板")
+        title.setObjectName("StatsPanelTitle")
+        header_layout.addWidget(title)
+
+        subtitle = QLabel("制度库数据概览")
+        subtitle.setObjectName("StatsPanelSubtitle")
+        header_layout.addWidget(subtitle)
+
+        layout.addWidget(header)
 
         # 统计卡片网格
         self._stats_grid = QGridLayout()
-        self._stats_grid.setSpacing(16)
+        self._stats_grid.setSpacing(20)
+        self._stats_grid.setContentsMargins(0, 8, 0, 0)
         layout.addLayout(self._stats_grid)
 
         layout.addStretch()
         return panel
 
     def _build_stats_cards(self):
-        """构建统计卡片"""
+        """构建统计卡片 — 现代数字卡片风格"""
         # 清空旧卡片
         while self._stats_grid.count():
             item = self._stats_grid.takeAt(0)
@@ -151,37 +163,34 @@ class MainWindow(QMainWindow):
         stats = statistics_service.get_summary()
 
         cards_data = [
-            ("📋", "制度总数", str(stats["total_docs"]), "#6366f1"),
-            ("📁", "分类数量", str(stats["total_categories"]), "#28A745"),
-            ("✅", "现行有效", str(stats.get("active_count", 0)), "#2d5aa0"),
-            ("📦", "已归档", str(stats.get("archived_count", 0)), "#888888"),
+            ("制度总数", str(stats["total_docs"]), "所有已录入的制度文档", "StatsCardPrimary", "#1D4ED8"),
+            ("分类数量", str(stats["total_categories"]), "制度分类目录数", "StatsCardSuccess", "#059669"),
+            ("现行有效", str(stats.get("active_count", 0)), "当前生效中的制度", "StatsCardIndigo", "#D97706"),
+            ("已归档", str(stats.get("archived_count", 0)), "已废止或归档的制度", "StatsCardGray", "#7C3AED"),
         ]
 
-        for i, (icon, label, value, color) in enumerate(cards_data):
+        for i, (label, value, desc, card_class, accent) in enumerate(cards_data):
             card = QFrame()
-            card.setStyleSheet(f"""
-                QFrame {{
-                    background-color: #ffffff;
-                    border: 1px solid #e0e0e0;
-                    border-left: 4px solid {color};
-                    border-radius: 8px;
-                    padding: 20px;
-                }}
-            """)
+            card.setObjectName(card_class)
             card_layout = QVBoxLayout(card)
-            card_layout.setSpacing(8)
+            card_layout.setSpacing(6)
+            card_layout.setContentsMargins(24, 20, 24, 20)
 
-            icon_label = QLabel(icon)
-            icon_label.setStyleSheet(f"font-size: 24px; background: transparent; font-family: {_FONT}; color: {color};")
-            card_layout.addWidget(icon_label)
+            # 标签
+            lbl = QLabel(label)
+            lbl.setObjectName("StatsCardLabel")
+            card_layout.addWidget(lbl)
 
+            # 大数字
             val_label = QLabel(value)
-            val_label.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {color}; background: transparent; font-family: {_FONT};")
+            val_label.setObjectName("StatsCardValue")
+            val_label.setStyleSheet(f"color: {accent}; background: transparent;")
             card_layout.addWidget(val_label)
 
-            text_label = QLabel(label)
-            text_label.setStyleSheet(f"font-size: 13px; color: #888888; background: transparent; font-family: {_FONT};")
-            card_layout.addWidget(text_label)
+            # 描述
+            desc_label = QLabel(desc)
+            desc_label.setObjectName("StatsCardDesc")
+            card_layout.addWidget(desc_label)
 
             self._stats_grid.addWidget(card, i // 2, i % 2)
 
@@ -814,7 +823,7 @@ class MainWindow(QMainWindow):
             
             # 跳过重复文件
             btn_skip = QPushButton("跳过重复文件（推荐）")
-            btn_skip.setStyleSheet("QPushButton { background: #28A745; color: white; padding: 10px; font-weight: bold; } QPushButton:hover { background: #218838; }")
+            btn_skip.setStyleSheet("QPushButton { background: #10B981; color: white; padding: 10px; font-weight: bold; } QPushButton:hover { background: #059669; }")
             btn_skip.clicked.connect(lambda: dlg.done(1))
             btn_layout.addWidget(btn_skip)
             skip_desc = QLabel("    只导入新文件，跳过已存在的文件")
@@ -1011,8 +1020,28 @@ class MainWindow(QMainWindow):
         except Exception as e:
             Toast.error(self, f"初始化失败: {e}")
     def _toggle_theme(self):
-        """切换主题"""
-        Toast.info(self, "主题切换功能开发中")
+        """切换深色/亮色主题"""
+        from PyQt5.QtCore import QSettings
+        settings = QSettings("RegulationManager", "RegulationManager")
+        current = settings.value("ui/theme", "light")
+        new_theme = "dark" if current == "light" else "light"
+        settings.setValue("ui/theme", new_theme)
+        self._apply_theme(new_theme)
+        Toast.success(self, f"已切换为{'深色' if new_theme == 'dark' else '浅色'}主题")
+
+    def _apply_theme(self, theme: str):
+        """应用指定主题的 QSS"""
+        qss_file = f"{theme}.qss"
+        qss_path = config.RESOURCES_DIR / "styles" / qss_file
+        if qss_path.exists():
+            with open(qss_path, "r", encoding="utf-8") as f:
+                qss_content = f.read()
+            # 替换基础字体大小
+            from ui.settings_dialog import get_font_size
+            saved_size = get_font_size()
+            import re
+            qss_content = re.sub(r'font-size:\s*16px', f'font-size: {saved_size}px', qss_content)
+            self.setStyleSheet(qss_content)
 
     def _on_settings(self):
         """系统设置"""

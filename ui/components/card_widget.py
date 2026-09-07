@@ -61,8 +61,7 @@ class DocumentCard(QWidget):
         # 文号
         if self.doc.doc_no:
             doc_no = QLabel(self.doc.doc_no)
-            doc_no.setObjectName("CardMeta")
-            doc_no.setStyleSheet(f"color: #2d5aa0; font-size: {small_size}px; font-family: {_FONT};")
+            doc_no.setObjectName("CardDocNo")
             layout.addWidget(doc_no)
 
         layout.addStretch()
@@ -79,14 +78,14 @@ class DocumentCard(QWidget):
         status_text = DOC_STATUS_LABELS.get(self.doc.status, self.doc.status)
         status_label = QLabel(status_text)
         status_color = {
-            "active": "#28a745", "archived": "#6c757d",
-            "superseded": "#dc3545", "expired": "#ffc107"
+            "active": "#10b981", "archived": "#6c757d",
+            "superseded": "#ef4444", "expired": "#f59e0b"
         }.get(self.doc.status, "#666")
         status_label.setStyleSheet(f"color: {status_color}; font-size: {small_size}px; font-weight: bold; font-family: {_FONT};")
         bottom.addWidget(status_label)
 
         type_label = QLabel(f"  {self.doc.file_type.upper()}")
-        type_label.setStyleSheet(f"color: #aaa; font-size: {small_size}px; font-family: {_FONT};")
+        type_label.setObjectName("CardFileType")
         bottom.addWidget(type_label)
 
         layout.addLayout(bottom)

@@ -53,6 +53,7 @@ class DocumentPanel(QWidget):
         self._checked_ids: Set[int] = set()
         self._current_sort: str = "updated_at"
         self._search_keyword: str = ""
+        self._hovered_row: int = -1
         self._setup_ui()
 
     def _highlight(self, text: str) -> str:
@@ -190,6 +191,29 @@ class DocumentPanel(QWidget):
         self._card_layout.setContentsMargins(16, 16, 16, 16)
         self._card_scroll.setWidget(self._card_widget)
         self._stack.addWidget(self._card_scroll)
+
+        # ── 空状态占位 ──
+        self._empty_state = QWidget()
+        empty_layout = QVBoxLayout(self._empty_state)
+        empty_layout.setAlignment(Qt.AlignCenter)
+        empty_layout.setSpacing(12)
+
+        self._empty_icon = QLabel("📭")
+        self._empty_icon.setObjectName("EmptyStateIcon")
+        self._empty_icon.setAlignment(Qt.AlignCenter)
+        empty_layout.addWidget(self._empty_icon)
+
+        self._empty_title = QLabel("暂无制度文档")
+        self._empty_title.setObjectName("EmptyStateTitle")
+        self._empty_title.setAlignment(Qt.AlignCenter)
+        empty_layout.addWidget(self._empty_title)
+
+        self._empty_hint = QLabel("点击左侧「+ 添加分类」创建分类，\n或使用工具栏「新增制度」导入文档")
+        self._empty_hint.setObjectName("EmptyStateHint")
+        self._empty_hint.setAlignment(Qt.AlignCenter)
+        empty_layout.addWidget(self._empty_hint)
+
+        self._stack.addWidget(self._empty_state)
         layout.addWidget(self._stack, 1)
 
         # ── 分页栏 ──
@@ -246,9 +270,12 @@ class DocumentPanel(QWidget):
         table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         table.setAlternatingRowColors(True)
         table.verticalHeader().setVisible(False)
-        # 根据字体大小动态设置行高（需要容纳标题+摘要两行）
-        table.verticalHeader().setDefaultSectionSize(max(60, cur_size * 4 + 20))
+        # 根据字体大小动态设置行高（紧凑布局）
+        table.verticalHeader().setDefaultSectionSize(max(44, cur_size * 3 + 8))
         table.setShowGrid(False)
+        table.setMouseTracking(True)
+        table.viewport().setMouseTracking(True)
+        table.entered.connect(self._on_table_hover)
         table.itemClicked.connect(self._on_table_clicked)
         table.itemDoubleClicked.connect(self._on_table_double_clicked)
 
@@ -400,6 +427,27 @@ class DocumentPanel(QWidget):
 
     # ── 表格事件 ──
 
+    def _on_table_hover(self, index):
+        """鼠标悬停行时显示/隐藏编辑按钮"""
+        row = index.row()
+        if row == self._hovered_row:
+            return
+        # 隐藏旧悬停行的编辑按钮
+        if 0 <= self._hovered_row < self._table.rowCount():
+            old_widget = self._table.cellWidget(self._hovered_row, 6)
+            if old_widget:
+                btn = old_widget.findChild(QPushButton)
+                if btn:
+                    btn.hide()
+        # 显示新悬停行的编辑按钮
+        if 0 <= row < len(self._documents):
+            new_widget = self._table.cellWidget(row, 6)
+            if new_widget:
+                btn = new_widget.findChild(QPushButton)
+                if btn:
+                    btn.show()
+        self._hovered_row = row
+
     def _on_table_clicked(self, item):
         row = item.row()
         if 0 <= row < len(self._documents):
@@ -419,7 +467,7 @@ class DocumentPanel(QWidget):
         """刷新表格行高和列宽（字体大小变化后调用）"""
         from ui.settings_dialog import get_font_size
         cur_size = get_font_size()
-        new_height = max(60, cur_size * 4 + 20)
+        new_height = max(44, cur_size * 3 + 8)
         checkbox_width = max(40, cur_size * 2 + 10)
         status_width = max(90, cur_size * 6 + 10)
         action_width = max(90, cur_size * 5 + 20)
@@ -444,9 +492,26 @@ class DocumentPanel(QWidget):
         self._select_all_cb.setChecked(False)
         self._select_all_cb.blockSignals(False)
         self._batch_widget.hide()
-        self._update_table()
-        if self._view_mode == "card":
-            self._rebuild_cards()
+
+        # 空状态切换
+        if not self._documents:
+            if keyword:
+                self._empty_icon.setText("🔍")
+                self._empty_title.setText("未找到匹配结果")
+                self._empty_hint.setText(f"没有找到包含「{keyword}」的制度文档，\n请尝试其他关键词")
+            else:
+                self._empty_icon.setText("📭")
+                self._empty_title.setText("暂无制度文档")
+                self._empty_hint.setText("点击左侧「+ 添加分类」创建分类，\n或使用工具栏「新增制度」导入文档")
+            self._stack.setCurrentIndex(2)
+        else:
+            if self._view_mode == "card":
+                self._stack.setCurrentIndex(1)
+                self._rebuild_cards()
+            else:
+                self._stack.setCurrentIndex(0)
+            self._update_table()
+
         self._update_pagination()
         # 全选栏显隐
         show_sa = (self._panel_mode != MODE_BROWSE
@@ -502,11 +567,11 @@ class DocumentPanel(QWidget):
             status_item = QTableWidgetItem(status_text)
             status_item.setTextAlignment(Qt.AlignCenter)
             if doc.status == "active":
-                status_item.setForeground(QColor("#28A745"))
+                status_item.setForeground(QColor("#10B981"))
                 status_item.setBackground(QColor(40, 167, 69, 30))
                 f = status_item.font(); f.setBold(True); status_item.setFont(f)
             elif doc.status == "expired":
-                status_item.setForeground(QColor("#DC3545"))
+                status_item.setForeground(QColor("#EF4444"))
                 status_item.setBackground(QColor(220, 53, 69, 30))
                 f = status_item.font(); f.setBold(True); status_item.setFont(f)
             table.setItem(row, 4, status_item)
@@ -520,6 +585,7 @@ class DocumentPanel(QWidget):
             btn_edit.setObjectName("TableEditBtn")
             btn_edit.setFixedHeight(28)
             btn_edit.clicked.connect(lambda _, did=doc.id: self.document_edit_requested.emit(did))
+            btn_edit.hide()  # 默认隐藏，鼠标悬停时显示
             edit_widget = QWidget()
             edit_layout = QHBoxLayout(edit_widget)
             edit_layout.addWidget(btn_edit)

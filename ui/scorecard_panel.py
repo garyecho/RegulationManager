@@ -210,20 +210,14 @@ class ScorecardPanel(QWidget):
 
         # 关联制度
         label = QLabel("关联制度")
-        label.setStyleSheet(
-            "font-weight: bold; color: #0066CC; font-size: 13px; "
-            "padding-left: 2px; margin-top: 8px;"
-        )
+        label.setObjectName("ScorecardSectionLabel")
         self._detail_layout.addWidget(label)
         if check.documents:
             for doc in check.documents:
                 # 信息卡片：每条关联制度一个卡片
                 card = QFrame()
                 card.setFrameShape(QFrame.StyledPanel)
-                card.setStyleSheet(
-                    "QFrame { background-color: #F0F7FF; border: 1px solid #D0E3F7; "
-                    "border-radius: 6px; padding: 4px 8px; }"
-                )
+                card.setObjectName("ScorecardDocCard")
                 row = QHBoxLayout(card)
                 row.setContentsMargins(12, 8, 12, 8)
                 row.setSpacing(8)
@@ -234,10 +228,7 @@ class ScorecardPanel(QWidget):
 
                 name = QLabel(f"📄 {doc.title}")
                 name.setWordWrap(True)
-                name.setStyleSheet(
-                    "font-size: 13px; font-weight: bold; color: #1E40AF; "
-                    "background: transparent; border: none;"
-                )
+                name.setObjectName("ScorecardDocTitle")
                 info_layout.addWidget(name)
 
                 # 详情行：文号 + 文件类型 + 自动关联标记
@@ -251,10 +242,7 @@ class ScorecardPanel(QWidget):
                 if details:
                     detail_text = "  |  ".join(details)
                     detail_lbl = QLabel(detail_text)
-                    detail_lbl.setStyleSheet(
-                        "font-size: 11px; color: #6B7280; "
-                        "background: transparent; border: none;"
-                    )
+                    detail_lbl.setObjectName("ScorecardDocMeta")
                     info_layout.addWidget(detail_lbl)
 
                 row.addLayout(info_layout, 1)
@@ -277,20 +265,14 @@ class ScorecardPanel(QWidget):
 
                 btn = QPushButton("打开")
                 btn.setFixedWidth(70)
-                btn.setStyleSheet(
-                    "QPushButton { font-size: 12px; padding: 4px 8px; }"
-                )
+                btn.setObjectName("ScorecardOpenBtn")
                 btn.clicked.connect(lambda _, d=doc.id: self.document_open_requested.emit(d))
                 row.addWidget(btn)
 
                 self._detail_layout.addWidget(card)
         else:
             empty_hint = QLabel("  暂未关联制度文档")
-            empty_hint.setStyleSheet(
-                "color: #9CA3AF; font-size: 12px; padding: 8px 12px; "
-                "background-color: #F9FAFB; border: 1px dashed #D1D5DB; "
-                "border-radius: 6px;"
-            )
+            empty_hint.setObjectName("ScorecardEmptyHint")
             self._detail_layout.addWidget(empty_hint)
 
         # 编辑入口
@@ -311,36 +293,27 @@ class ScorecardPanel(QWidget):
     def _show_placeholder(self, text: str):
         self._clear_detail()
         hint = QLabel(text)
-        hint.setStyleSheet("color: #999999;")
+        hint.setObjectName("ScorecardPlaceholder")
         self._detail_layout.addWidget(hint)
         self._detail_layout.addStretch()
 
     def _add_detail_title(self, text: str):
         title = QLabel(text)
         title.setWordWrap(True)
-        title.setStyleSheet(
-            "font-size: 16px; font-weight: bold; color: #111827; "
-            "padding: 4px 0; line-height: 1.4;"
-        )
+        title.setObjectName("ScorecardDetailTitle")
         self._detail_layout.addWidget(title)
 
     def _add_detail_field(self, label_text: str, value: str):
         """添加一个带卡片背景的详情字段（标签 + 内容）"""
         # 字段标题
         lbl = QLabel(label_text)
-        lbl.setStyleSheet(
-            "font-weight: bold; color: #0066CC; font-size: 13px; "
-            "padding-left: 2px; margin-top: 8px;"
-        )
+        lbl.setObjectName("ScorecardFieldLabel")
         self._detail_layout.addWidget(lbl)
 
         # 内容卡片：带浅色背景 + 圆角边框
         card = QFrame()
         card.setFrameShape(QFrame.StyledPanel)
-        card.setStyleSheet(
-            "QFrame { background-color: #F8F9FA; border: 1px solid #E9ECEF; "
-            "border-radius: 6px; padding: 8px 12px; }"
-        )
+        card.setObjectName("ScorecardFieldCard")
         card_layout = QVBoxLayout(card)
         card_layout.setContentsMargins(12, 10, 12, 10)
         card_layout.setSpacing(4)
@@ -353,10 +326,7 @@ class ScorecardPanel(QWidget):
         )
         body.setText(scorecard_service.render_linked_html(value) or "（空）")
         body.linkActivated.connect(self._on_citation_link)
-        body.setStyleSheet(
-            "color: #212529; font-size: 13px; line-height: 1.5; "
-            "background-color: transparent; border: none;"
-        )
+        body.setObjectName("ScorecardFieldBody")
         card_layout.addWidget(body)
 
         self._detail_layout.addWidget(card)
@@ -383,35 +353,23 @@ class ScorecardPanel(QWidget):
 
         # 图标 + 标题
         header = QLabel("⚠ 该制度引用未在库中找到匹配文件")
-        header.setStyleSheet(
-            "font-size: 15px; font-weight: bold; color: #B45309; "
-            "padding: 0; background: transparent;"
-        )
+        header.setObjectName("ScorecardCiteHeader")
         layout.addWidget(header)
 
         # 引用原文（卡片样式，方便复制）
         ref_label = QLabel("引用原文：")
-        ref_label.setStyleSheet(
-            "font-weight: bold; color: #495057; font-size: 13px; "
-            "background: transparent; border: none;"
-        )
+        ref_label.setObjectName("ScorecardCiteRefLabel")
         layout.addWidget(ref_label)
 
         ref_card = QFrame()
         ref_card.setFrameShape(QFrame.StyledPanel)
-        ref_card.setStyleSheet(
-            "QFrame { background-color: #FFF7ED; border: 1px solid #FED7AA; "
-            "border-radius: 6px; padding: 10px 14px; }"
-        )
+        ref_card.setObjectName("ScorecardCiteRefCard")
         ref_layout = QVBoxLayout(ref_card)
         ref_layout.setContentsMargins(14, 10, 14, 10)
         ref_content = QLabel(citation_text)
         ref_content.setWordWrap(True)
         ref_content.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        ref_content.setStyleSheet(
-            "font-size: 14px; color: #92400E; font-weight: bold; "
-            "background: transparent; border: none; line-height: 1.5;"
-        )
+        ref_content.setObjectName("ScorecardCiteRefContent")
         ref_layout.addWidget(ref_content)
         layout.addWidget(ref_card)
 
@@ -424,11 +382,7 @@ class ScorecardPanel(QWidget):
             "  · 检查制度库中是否已导入该文件\n"
             "  · 如已导入，请核对标题和文号是否匹配"
         )
-        hint.setStyleSheet(
-            "color: #6B7280; font-size: 12px; line-height: 1.6; "
-            "background-color: #F3F4F6; border-radius: 6px; "
-            "padding: 12px 14px;"
-        )
+        hint.setObjectName("ScorecardCiteHint")
         hint.setWordWrap(True)
         layout.addWidget(hint)
 

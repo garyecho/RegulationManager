@@ -97,13 +97,16 @@ def main():
     from ui.main_window import MainWindow
     window = MainWindow()
 
-    # 对主窗口集中加载 QSS（动态替换字体大小）
-    qss_path = config.RESOURCES_DIR / "styles" / "light.qss"
+    # 对主窗口集中加载 QSS（根据保存的主题偏好 + 动态替换字体大小）
+    from PyQt5.QtCore import QSettings
+    theme = QSettings("RegulationManager", "RegulationManager").value("ui/theme", "light")
+    import re
+    qss_path = config.RESOURCES_DIR / "styles" / f"{theme}.qss"
     if qss_path.exists():
         with open(qss_path, "r", encoding="utf-8") as f:
             qss_content = f.read()
         # 替换 QSS 中的字体大小为用户设置值
-        qss_content = qss_content.replace("16px", f"{saved_size}px")
+        qss_content = re.sub(r'font-size:\s*16px', f'font-size: {saved_size}px', qss_content)
         window.setStyleSheet(qss_content)
 
     window.show()
