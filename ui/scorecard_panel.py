@@ -4,7 +4,7 @@
 import logging
 from typing import Dict, List, Optional
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox,
     QLineEdit, QTreeWidget, QTreeWidgetItem, QSplitter, QScrollArea,
@@ -42,6 +42,7 @@ class ScorecardPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+        self._detail_frozen = False
 
         # 顶部工具栏：银行类型 + 搜索
         toolbar = QWidget()
@@ -80,7 +81,7 @@ class ScorecardPanel(QWidget):
         layout.addWidget(toolbar)
 
         # 主体：左树 / 右详情
-        splitter = QSplitter(Qt.Horizontal)
+        self._splitter = QSplitter(Qt.Horizontal)
 
         left = QWidget()
         left_layout = QVBoxLayout(left)
@@ -88,36 +89,67 @@ class ScorecardPanel(QWidget):
         left_layout.setSpacing(0)
 
         self._result_list = QListWidget()
+        self._result_list.setObjectName("ScorecardResultList")
         self._result_list.setMaximumHeight(160)
         self._result_list.itemClicked.connect(self._on_result_clicked)
         self._result_list.hide()
         left_layout.addWidget(self._result_list)
 
         self._tree = QTreeWidget()
+        self._tree.setObjectName("ScorecardTree")
         self._tree.setHeaderHidden(True)
-        self._tree.setIndentation(16)
+        self._tree.setIndentation(20)
         self._tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self._tree.customContextMenuRequested.connect(self._on_tree_menu)
         self._tree.itemClicked.connect(self._on_tree_clicked)
         left_layout.addWidget(self._tree, 1)
-        splitter.addWidget(left)
+        self._splitter.addWidget(left)
 
         # 右侧详情（可滚动）
         self._detail_scroll = QScrollArea()
+        self._detail_scroll.setObjectName("ScorecardDetailScroll")
         self._detail_scroll.setWidgetResizable(True)
         self._detail_scroll.setFrameShape(QFrame.NoFrame)
         self._detail_host = QWidget()
+        self._detail_host.setObjectName("ScorecardDetailHost")
+        self._detail_host.setMinimumWidth(320)  # 防止拖得过窄导致频繁换行
         self._detail_layout = QVBoxLayout(self._detail_host)
-        self._detail_layout.setContentsMargins(20, 16, 20, 16)
-        self._detail_layout.setSpacing(4)
+        self._detail_layout.setContentsMargins(24, 20, 24, 20)
+        self._detail_layout.setSpacing(8)
         self._detail_scroll.setWidget(self._detail_host)
-        splitter.addWidget(self._detail_scroll)
+        self._splitter.addWidget(self._detail_scroll)
 
-        splitter.setStretchFactor(0, 3)
-        splitter.setStretchFactor(1, 4)
-        layout.addWidget(splitter, 1)
+        self._splitter.setStretchFactor(0, 3)
+        self._splitter.setStretchFactor(1, 4)
+
+        # 拖动优化：拖动期间暂停详情区重绘，松手后延迟刷新
+        self._resize_timer = QTimer(self)
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.setInterval(80)  # 松手后 80ms 刷新
+        self._resize_timer.timeout.connect(self._on_resize_done)
+        self._splitter.splitterMoved.connect(self._on_splitter_moved)
+
+        layout.addWidget(self._splitter, 1)
 
         self._show_placeholder("请选择左侧打分卡条目查看详情")
+
+    # ── 拖动优化 ──
+
+    def _on_splitter_moved(self, pos, index):
+        """拖动 splitter 时冻结详情区宽度，避免每像素触发富文本重布局"""
+        if not self._detail_frozen:
+            self._detail_frozen = True
+            w = self._detail_host.width()
+            # 只固定宽度，高度仍由内容决定
+            self._detail_host.setFixedWidth(w)
+        self._resize_timer.start()  # 每次移动重启计时
+
+    def _on_resize_done(self):
+        """拖动结束后释放宽度约束，一次性重布局"""
+        self._detail_frozen = False
+        self._detail_host.setMinimumWidth(320)
+        self._detail_host.setMaximumWidth(16777215)  # QWIDGETSIZE_MAX
+        self._detail_host.update()
 
     # ── 数据加载 ──
 
@@ -151,21 +183,24 @@ class ScorecardPanel(QWidget):
         if self._current_scorecard_id is None:
             return
 
+        # 每层图标前缀
+        _ICONS = {"module": "📘", "section": "📋", "item": "📄", "check": "✅"}
+
         for module in scorecard_service.get_tree(self._current_scorecard_id):
-            m_item = QTreeWidgetItem([module.name])
+            m_item = QTreeWidgetItem([f"{_ICONS['module']}  {module.name}"])
             m_item.setData(0, ROLE_NODE, ("module", module.id))
             self._tree.addTopLevelItem(m_item)
             for section in module.children:
-                s_item = QTreeWidgetItem([section.name])
+                s_item = QTreeWidgetItem([f"{_ICONS['section']}  {section.name}"])
                 s_item.setData(0, ROLE_NODE, ("section", section.id))
                 m_item.addChild(s_item)
                 for item in section.children:
-                    i_item = QTreeWidgetItem([item.name])
+                    i_item = QTreeWidgetItem([f"{_ICONS['item']}  {item.name}"])
                     i_item.setData(0, ROLE_NODE, ("item", item.id))
                     s_item.addChild(i_item)
                     for check in item.checks:
                         text = check.content or "（无评级内容）"
-                        c_item = QTreeWidgetItem([text])
+                        c_item = QTreeWidgetItem([f"{_ICONS['check']}  {text}"])
                         c_item.setData(0, ROLE_NODE, ("check", check.id))
                         c_item.setToolTip(0, text)
                         i_item.addChild(c_item)
@@ -186,7 +221,7 @@ class ScorecardPanel(QWidget):
 
     def _show_node_summary(self, item: QTreeWidgetItem, kind: str):
         """非叶子节点：展示其下层清单概览"""
-        kind_label = {"module": "模块", "section": "一级指标", "item": "二级指标"}.get(kind, "")
+        kind_label = {"module": "📘 模块", "section": "📋 一级指标", "item": "📄 二级指标"}.get(kind, "")
         children = [item.child(i).text(0) for i in range(item.childCount())]
         self._clear_detail()
         self._add_detail_title(f"{kind_label}：{item.text(0)}")
@@ -204,12 +239,18 @@ class ScorecardPanel(QWidget):
 
         self._clear_detail()
         self._add_detail_title(check.content or "（无评级内容）")
-        self._add_detail_field("评分要点", check.key_points)
-        self._add_detail_field("监管制度和条款（依据）", check.regulation_basis)
-        self._add_detail_field("需调阅材料（清单）", check.review_materials)
+        self._add_detail_field("📌 评分要点", check.key_points)
+        self._add_detail_field("📖 监管制度和条款（依据）", check.regulation_basis)
+        self._add_detail_field("📎 需调阅材料（清单）", check.review_materials)
+
+        # 分隔线
+        sep = QFrame()
+        sep.setObjectName("ScorecardSep")
+        sep.setFrameShape(QFrame.HLine)
+        self._detail_layout.addWidget(sep)
 
         # 关联制度
-        label = QLabel("关联制度")
+        label = QLabel("🔗 关联制度")
         label.setObjectName("ScorecardSectionLabel")
         self._detail_layout.addWidget(label)
         if check.documents:
@@ -276,8 +317,9 @@ class ScorecardPanel(QWidget):
             self._detail_layout.addWidget(empty_hint)
 
         # 编辑入口
-        btn_edit = QPushButton("✏ 编辑本条目")
-        btn_edit.setFixedWidth(140)
+        btn_edit = QPushButton("✏  编辑本条目")
+        btn_edit.setFixedWidth(160)
+        btn_edit.setObjectName("DialogBtnSecondary")
         btn_edit.clicked.connect(lambda: self._edit_check(check.id))
         self._detail_layout.addWidget(btn_edit)
         self._detail_layout.addStretch()
@@ -292,10 +334,19 @@ class ScorecardPanel(QWidget):
 
     def _show_placeholder(self, text: str):
         self._clear_detail()
+        # 居中占位容器
+        container = QWidget()
+        vbox = QVBoxLayout(container)
+        vbox.setAlignment(Qt.AlignCenter)
+        icon = QLabel("📋")
+        icon.setStyleSheet("font-size: 48px; background: transparent;")
+        icon.setAlignment(Qt.AlignCenter)
+        vbox.addWidget(icon)
         hint = QLabel(text)
         hint.setObjectName("ScorecardPlaceholder")
-        self._detail_layout.addWidget(hint)
-        self._detail_layout.addStretch()
+        hint.setAlignment(Qt.AlignCenter)
+        vbox.addWidget(hint)
+        self._detail_layout.addWidget(container, 1)
 
     def _add_detail_title(self, text: str):
         title = QLabel(text)
@@ -535,5 +586,6 @@ class ScorecardPanel(QWidget):
         for item in iterator:
             node = item.data(0, ROLE_NODE)
             if node and node[0] == "check" and node[1] == check_id:
-                item.setText(0, new_text or "（无评级内容）")
+                display = new_text or "（无评级内容）"
+                item.setText(0, f"✅  {display}")
                 break

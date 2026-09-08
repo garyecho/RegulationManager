@@ -60,7 +60,7 @@ def load_qss_content(theme: str, font_size: int) -> str:
     with open(qss_path, "r", encoding="utf-8") as f:
         qss_content = f.read()
     # 替换 QSS 中的字体大小为用户设置值
-    qss_content = re.sub(r'font-size:\s*16px', f'font-size: {font_size}px', qss_content)
+    qss_content = re.sub(r'font-size:\s*14px', f'font-size: {font_size}px', qss_content)
     return qss_content
 
 

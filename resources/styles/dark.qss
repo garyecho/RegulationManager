@@ -8,12 +8,30 @@
 * {
     font-family: "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI Variable",
                  "Segoe UI", "SimHei", sans-serif;
-    font-size: 16px;
+    font-size: 14px;
     color: #E0E0E0;
 }
 
 QMainWindow {
     background-color: #1E1E2E;
+}
+
+/* ── 超链接 ──────────────────────────────────────────────── */
+a {
+    color: #93C5FD;
+}
+a:hover {
+    color: #A5B4FC;
+    text-decoration: underline;
+}
+a:visited {
+    color: #C4B5FD;
+}
+a.missing-link {
+    color: #6B7280;
+}
+a.missing-link:hover {
+    color: #9CA3AF;
 }
 
 /* ── 菜单栏 ──────────────────────────────────────────────── */
@@ -53,12 +71,38 @@ QMenu::separator {
     margin: 4px 8px;
 }
 
-/* ── 工具栏 ──────────────────────────────────────────────── */
-QToolBar {
+/* ── 工具栏（主窗口自定义）────────────────────────────────── */
+#MainWindowToolbar {
     background-color: #2A2A3C;
     border-bottom: 1px solid #3A3A4E;
-    padding: 6px 12px;
-    spacing: 8px;
+}
+#ToolbarBtn {
+    background-color: transparent;
+    color: #A5B4FC;
+    border: 1px solid #3A3A4E;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+}
+#ToolbarBtn:hover {
+    background-color: #3A3A5E;
+    border-color: #4A4A7E;
+}
+#ToolbarBtn:pressed {
+    background-color: #4A4A6E;
+}
+#ToolbarSep {
+    color: #3A3A4E;
+    margin: 2px 4px;
+}
+
+/* ── 工具栏（旧 QToolBar 兼容）────────────────────────────── */
+QToolBar {
+    background-color: transparent;
+    border: none;
+    padding: 0px;
+    spacing: 0px;
 }
 QToolBar QToolButton {
     background-color: transparent;
@@ -82,24 +126,24 @@ QToolBar QToolButton:pressed {
 }
 #SidebarTitle {
     color: #A5B4FC;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: bold;
-    padding: 20px 16px 6px 16px;
+    padding: 16px 16px 2px 16px;
 }
 #SidebarSubtitle {
     color: #6B7280;
-    font-size: 14px;
-    padding: 0px 16px 16px 16px;
+    font-size: 12px;
+    padding: 0px 16px 12px 16px;
 }
 #Sidebar QPushButton {
     background-color: transparent;
     color: #9CA3AF;
     border: none;
-    border-left: 4px solid transparent;
+    border-left: 3px solid transparent;
     border-radius: 0px;
-    padding: 12px 16px;
+    padding: 11px 16px;
     text-align: left;
-    font-size: 16px;
+    font-size: 14px;
     min-height: 20px;
 }
 #Sidebar QPushButton:hover {
@@ -110,7 +154,7 @@ QToolBar QToolButton:pressed {
 #Sidebar QPushButton[active="true"] {
     background-color: #3A3A5E;
     color: #A5B4FC;
-    border-left: 4px solid #6366F1;
+    border-left: 3px solid #6366F1;
     font-weight: bold;
 }
 #Sidebar QTreeWidget,
@@ -119,22 +163,23 @@ QToolBar QToolButton:pressed {
     color: #E0E0E0;
     border: none;
     outline: none;
-    font-size: 16px;
+    font-size: 14px;
 }
 #Sidebar QTreeWidget::item,
 #Sidebar QTreeView::item {
-    padding: 9px 8px;
+    padding: 8px 8px;
     border-radius: 6px;
     margin: 1px 4px;
 }
 #Sidebar QTreeWidget::item:hover,
 #Sidebar QTreeView::item:hover {
-    background-color: #33334A;
+    background-color: #2E2E48;
 }
 #Sidebar QTreeWidget::item:selected,
 #Sidebar QTreeView::item:selected {
     background-color: #3A3A5E;
     color: #A5B4FC;
+    font-weight: bold;
 }
 #Sidebar QTreeWidget::branch {
     background-color: transparent;
@@ -153,29 +198,30 @@ QToolBar QToolButton:pressed {
 /* 侧边栏统计文字 */
 #SidebarStats {
     color: #6B7280;
-    font-size: 14px;
-    padding: 12px 16px;
+    font-size: 12px;
+    padding: 0px 4px;
 }
 /* 侧边栏添加分类按钮 */
 #SidebarAddCatBtn {
     background: transparent;
     color: #A5B4FC;
-    border: 1px dashed #3A3A4E;
+    border: 1.5px dashed #4A4A7E;
     border-radius: 8px;
     padding: 8px 16px;
     text-align: center;
-    margin: 8px 12px;
+    font-size: 13px;
 }
 #SidebarAddCatBtn:hover {
     background-color: #3A3A5E;
+    border-color: #6366F1;
 }
 
 /* ── 搜索栏 ──────────────────────────────────────────────── */
 #SearchBar {
     background-color: #33334A;
     border: 1.5px solid #3A3A4E;
-    border-radius: 20px;
-    padding: 8px 18px;
+    border-radius: 8px;
+    padding: 7px 16px;
     font-size: 13px;
     color: #E0E0E0;
 }
@@ -195,10 +241,10 @@ QToolBar QToolButton:pressed {
 #PanelToolbar {
     background-color: #2A2A3C;
     border-bottom: 1px solid #3A3A4E;
-    padding: 8px;
+    padding: 6px 16px;
 }
 #PanelTitle {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: bold;
     color: #E0E0E0;
 }
@@ -222,7 +268,7 @@ QToolBar QToolButton:pressed {
     color: #A5B4FC;
     border: 1px solid #4A4A7E;
     border-radius: 6px;
-    padding: 4px 12px;
+    padding: 4px 10px;
     font-size: 12px;
     font-weight: bold;
 }
@@ -231,7 +277,7 @@ QToolBar QToolButton:pressed {
     color: #6B7280;
     border: 1px solid transparent;
     border-radius: 6px;
-    padding: 4px 12px;
+    padding: 4px 10px;
     font-size: 12px;
 }
 #SortBtnInactive:hover {
@@ -245,14 +291,14 @@ QToolBar QToolButton:pressed {
     color: #FFFFFF;
     border: none;
     border-radius: 6px;
-    font-size: 16px;
+    font-size: 14px;
 }
 #ViewBtnInactive {
     background: #2A2A3C;
     color: #6B7280;
     border: 1px solid #3A3A4E;
     border-radius: 6px;
-    font-size: 16px;
+    font-size: 14px;
 }
 #ViewBtnInactive:hover {
     background: #33334A;
@@ -334,7 +380,7 @@ QToolBar QToolButton:pressed {
     color: #9CA3AF;
     border: 1px solid #3A3A4E;
     border-radius: 6px;
-    padding: 4px 14px;
+    padding: 4px 12px;
     font-size: 12px;
 }
 #PageBtn:hover {
@@ -354,7 +400,7 @@ QTableWidget, QTableView {
     gridline-color: #33334A;
     selection-background-color: #3A3A5E;
     selection-color: #A5B4FC;
-    font-size: 16px;
+    font-size: 14px;
     outline: none;
     color: #E0E0E0;
 }
@@ -840,6 +886,58 @@ QCalendarWidget QAbstractItemView:item:selected {
 
 /* ── 打分卡面板 (Scorecard Panel) ─────────────────────────── */
 
+/* 打分卡左侧树 */
+#ScorecardTree {
+    background-color: #232336;
+    border: none;
+    border-right: 1px solid #3A3A4E;
+    outline: none;
+    font-size: 14px;
+    color: #E0E0E0;
+}
+#ScorecardTree::item {
+    padding: 7px 6px;
+    border-radius: 6px;
+    margin: 1px 4px;
+}
+#ScorecardTree::item:hover {
+    background-color: #2E2E48;
+}
+#ScorecardTree::item:selected {
+    background-color: #3A3A5E;
+    color: #A5B4FC;
+    font-weight: bold;
+}
+#ScorecardTree::branch {
+    background-color: transparent;
+}
+
+/* 打分卡搜索结果列表 */
+#ScorecardResultList {
+    background-color: #3A2E1A;
+    border: 1px solid #92400E;
+    border-radius: 8px;
+    padding: 4px;
+    font-size: 13px;
+    color: #FCD34D;
+}
+#ScorecardResultList::item {
+    padding: 8px 10px;
+    border-radius: 4px;
+}
+#ScorecardResultList::item:hover {
+    background-color: #4A3A2A;
+}
+#ScorecardResultList::item:selected {
+    background-color: #5A4A2A;
+    color: #FEF3C7;
+}
+
+#ScorecardSep {
+    color: #3A3A4E;
+    margin: 6px 0;
+}
+
 #ScorecardSectionLabel {
     font-weight: bold;
     color: #A5B4FC;
@@ -851,8 +949,12 @@ QCalendarWidget QAbstractItemView:item:selected {
 #ScorecardDocCard {
     background-color: #1E2A3A;
     border: 1px solid #2A4A6A;
-    border-radius: 6px;
-    padding: 4px 8px;
+    border-radius: 8px;
+    padding: 6px 10px;
+}
+#ScorecardDocCard:hover {
+    border-color: #6366F1;
+    background-color: #253545;
 }
 
 #ScorecardDocTitle {
@@ -886,13 +988,27 @@ QCalendarWidget QAbstractItemView:item:selected {
 
 #ScorecardPlaceholder {
     color: #6B7280;
+    font-size: 15px;
+    padding: 40px 20px;
+    qproperty-alignment: 'AlignCenter';
 }
 
 #ScorecardDetailTitle {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
     color: #F3F4F6;
-    padding: 4px 0;
+    padding: 8px 0;
+    border-bottom: 2px solid #6366F1;
+    margin-bottom: 6px;
+}
+
+/* 打分卡右侧详情区背景 */
+#ScorecardDetailHost {
+    background-color: #222236;
+}
+
+#ScorecardDetailScroll > QScrollArea {
+    background-color: #222236;
 }
 
 #ScorecardFieldLabel {
@@ -904,10 +1020,11 @@ QCalendarWidget QAbstractItemView:item:selected {
 }
 
 #ScorecardFieldCard {
-    background-color: #252538;
+    background-color: #db6707;
     border: 1px solid #3A3A4E;
-    border-radius: 6px;
-    padding: 8px 12px;
+    border-left: 3px solid #6366F1;
+    border-radius: 8px;
+    padding: 10px 14px;
 }
 
 #ScorecardFieldBody {

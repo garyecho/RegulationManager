@@ -388,15 +388,22 @@ def _resolve_citation(title: Optional[str], no: Optional[str]) -> Optional[int]:
         return doc.id if doc else None
 
 
-def render_linked_html(text: str) -> str:
-    """把文本中的制度引用渲染为超链 HTML：已匹配蓝链 doc://{id}，未匹配灰链 missing://"""
+def render_linked_html(text: str, dark_theme: bool = False) -> str:
+    """把文本中的制度引用渲染为超链 HTML：已匹配蓝链 doc://{id}，未匹配灰链 missing://
+
+    Args:
+        text: 原始文本
+        dark_theme: 是否为深色主题，控制内联颜色
+    """
     def _repl(m):
         title, no = m.group("title"), m.group("no1") or m.group("no2")
         doc_id = _resolve_citation(title, no)
         label = html.escape(m.group(0))
         if doc_id:
             return f'<a href="doc://{doc_id}">{label}</a>'
-        return f'<font color="#999999"><a href="missing://{quote(m.group(0))}">{label}</a></font>'
+        return f'<a href="missing://{quote(m.group(0))}">{label}</a>'
+
+    return _CITATION_RE.sub(_repl, html.escape(text or ""))
 
     return _CITATION_RE.sub(_repl, html.escape(text or ""))
 

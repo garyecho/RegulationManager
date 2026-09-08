@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
         search_bar = QWidget()
         search_bar.setObjectName("SearchBarContainer")
         search_layout = QHBoxLayout(search_bar)
-        search_layout.setContentsMargins(16, 10, 16, 10)
+        search_layout.setContentsMargins(16, 8, 16, 8)
 
         self._search_input = QLineEdit()
         self._search_input.setObjectName("SearchBar")
@@ -276,24 +276,48 @@ class MainWindow(QMainWindow):
         help_menu.addAction(act_about)
 
     def _setup_toolbar(self):
-        """工具栏"""
-        toolbar = QToolBar("快捷操作")
-        toolbar.setMovable(False)
-        self.addToolBar(toolbar)
+        """自定义工具栏（替代原生 QToolBar，与侧边栏风格统一）"""
+        toolbar = QWidget()
+        toolbar.setObjectName("MainWindowToolbar")
+        tb = QHBoxLayout(toolbar)
+        tb.setContentsMargins(12, 6, 12, 6)
+        tb.setSpacing(4)
 
-        act_add = QAction("➕ 新增制度", self)
-        act_add.triggered.connect(self._on_add_document)
-        toolbar.addAction(act_add)
+        btn_add = QPushButton("➕  新增制度")
+        btn_add.setObjectName("ToolbarBtn")
+        btn_add.setCursor(Qt.PointingHandCursor)
+        btn_add.clicked.connect(self._on_add_document)
+        tb.addWidget(btn_add)
 
-        act_import = QAction("📥 批量导入", self)
-        act_import.triggered.connect(self._on_batch_import)
-        toolbar.addAction(act_import)
+        btn_import = QPushButton("📥  批量导入")
+        btn_import.setObjectName("ToolbarBtn")
+        btn_import.setCursor(Qt.PointingHandCursor)
+        btn_import.clicked.connect(self._on_batch_import)
+        tb.addWidget(btn_import)
 
-        toolbar.addSeparator()
+        tb.addWidget(self._make_toolbar_sep())
 
-        act_refresh = QAction("🔄 刷新", self)
-        act_refresh.triggered.connect(self._refresh_list)
-        toolbar.addAction(act_refresh)
+        btn_refresh = QPushButton("🔄  刷新")
+        btn_refresh.setObjectName("ToolbarBtn")
+        btn_refresh.setCursor(Qt.PointingHandCursor)
+        btn_refresh.clicked.connect(self._refresh_list)
+        tb.addWidget(btn_refresh)
+
+        tb.addStretch()
+
+        # 用 addToolBar 包装，保持在菜单栏下方
+        wrapper = QToolBar()
+        wrapper.setObjectName("MainWindowToolbarWrapper")
+        wrapper.setMovable(False)
+        wrapper.addWidget(toolbar)
+        self.addToolBar(wrapper)
+
+    @staticmethod
+    def _make_toolbar_sep() -> QFrame:
+        sep = QFrame()
+        sep.setFrameShape(QFrame.VLine)
+        sep.setObjectName("ToolbarSep")
+        return sep
 
     def _setup_statusbar(self):
         """状态栏"""
