@@ -88,7 +88,7 @@ def main():
     app.setFont(font)
 
     # 应用用户保存的字体大小设置
-    from ui.settings_dialog import get_font_size
+    from ui.settings_dialog import get_font_size, get_theme, load_qss_content
     saved_size = get_font_size()
     font.setPointSize(saved_size)
     app.setFont(font)
@@ -97,14 +97,10 @@ def main():
     from ui.main_window import MainWindow
     window = MainWindow()
 
-    # 对主窗口集中加载 QSS（动态替换字体大小）
-    import re
-    qss_path = config.RESOURCES_DIR / "styles" / "light.qss"
-    if qss_path.exists():
-        with open(qss_path, "r", encoding="utf-8") as f:
-            qss_content = f.read()
-        # 替换 QSS 中的字体大小为用户设置值
-        qss_content = re.sub(r'font-size:\s*16px', f'font-size: {saved_size}px', qss_content)
+    # 对主窗口集中加载 QSS（根据主题 + 字体大小）
+    current_theme = get_theme()
+    qss_content = load_qss_content(current_theme, saved_size)
+    if qss_content:
         window.setStyleSheet(qss_content)
 
     window.show()

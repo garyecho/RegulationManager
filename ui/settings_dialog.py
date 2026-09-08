@@ -1,15 +1,25 @@
 """
 系统设置对话框
 """
+import re
+import config
 from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGroupBox,
-    QLabel, QSlider, QPushButton, QFormLayout, QWidget
+    QLabel, QSlider, QPushButton, QFormLayout, QWidget, QComboBox
 )
 
 
 # 默认字体大小
 DEFAULT_FONT_SIZE = 14
+
+# 主题常量
+THEME_LIGHT = "light"
+THEME_DARK = "dark"
+THEMES = {
+    THEME_LIGHT: "浅色模式",
+    THEME_DARK: "深色模式",
+}
 
 
 def get_settings() -> QSettings:
@@ -27,6 +37,31 @@ def save_font_size(size: int):
     """保存字体大小"""
     settings = get_settings()
     settings.setValue("ui/font_size", size)
+
+
+def get_theme() -> str:
+    """读取保存的主题，默认浅色"""
+    settings = get_settings()
+    return settings.value("ui/theme", THEME_LIGHT, type=str)
+
+
+def save_theme(theme: str):
+    """保存主题"""
+    settings = get_settings()
+    settings.setValue("ui/theme", theme)
+
+
+def load_qss_content(theme: str, font_size: int) -> str:
+    """加载指定主题的 QSS 内容，并替换字体大小"""
+    filename = "dark.qss" if theme == THEME_DARK else "light.qss"
+    qss_path = config.RESOURCES_DIR / "styles" / filename
+    if not qss_path.exists():
+        return ""
+    with open(qss_path, "r", encoding="utf-8") as f:
+        qss_content = f.read()
+    # 替换 QSS 中的字体大小为用户设置值
+    qss_content = re.sub(r'font-size:\s*16px', f'font-size: {font_size}px', qss_content)
+    return qss_content
 
 
 def apply_font_size(size: int, app=None):
@@ -52,6 +87,7 @@ class SettingsDialog(QDialog):
         self.setMinimumWidth(500)
         self.setMinimumHeight(400)
         self._current_size = get_font_size()
+        self._current_theme = get_theme()
         self._setup_ui()
         self._load_settings()
 
@@ -85,6 +121,14 @@ class SettingsDialog(QDialog):
         size_layout.addWidget(self._size_label)
 
         appearance_layout.addRow("字体大小：", size_widget)
+
+        # 主题选择
+        self._theme_combo = QComboBox()
+        self._theme_combo.setMinimumWidth(150)
+        for key, label in THEMES.items():
+            self._theme_combo.addItem(label, key)
+        self._theme_combo.currentIndexChanged.connect(self._on_theme_changed)
+        appearance_layout.addRow("界面主题：", self._theme_combo)
 
         # 快捷预设按钮
         preset_widget = QWidget()
@@ -134,6 +178,12 @@ class SettingsDialog(QDialog):
     def _load_settings(self):
         """加载已保存的设置"""
         self._size_slider.setValue(self._current_size)
+        # 加载主题设置
+        current_theme = get_theme()
+        idx = self._theme_combo.findData(current_theme)
+        if idx >= 0:
+            self._theme_combo.setCurrentIndex(idx)
+        self._current_theme = current_theme
 
     def _on_size_changed(self, value: int):
         """字体大小变化时实时预览"""
@@ -151,22 +201,20 @@ class SettingsDialog(QDialog):
         if self._main_window and hasattr(self._main_window, '_doc_panel'):
             self._main_window._doc_panel.refresh_row_height()
 
-    def _update_qss(self, font_size: int):
-        """动态更新 QSS 中的字体大小"""
-        import config
-        import re
+    def _on_theme_changed(self, index: int):
+        """主题切换时实时预览"""
+        self._current_theme = self._theme_combo.currentData()
+        self._apply_qss()
 
+    def _update_qss(self, font_size: int):
+        """动态更新 QSS（字体大小或主题变化时调用）"""
+        self._apply_qss()
+
+    def _apply_qss(self):
+        """根据当前主题和字体大小应用 QSS"""
         if self._main_window:
-            qss_path = config.RESOURCES_DIR / "styles" / "light.qss"
-            if qss_path.exists():
-                with open(qss_path, "r", encoding="utf-8") as f:
-                    qss_content = f.read()
-                # 只替换 font-size 属性中的 16px，不影响 padding/margin 等
-                qss_content = re.sub(
-                    r'font-size:\s*16px',
-                    f'font-size: {font_size}px',
-                    qss_content
-                )
+            qss_content = load_qss_content(self._current_theme, self._current_size)
+            if qss_content:
                 self._main_window.setStyleSheet(qss_content)
 
     def _set_size(self, size: int):
@@ -180,6 +228,7 @@ class SettingsDialog(QDialog):
     def _apply_settings(self):
         """应用设置"""
         save_font_size(self._current_size)
+        save_theme(self._current_theme)
         apply_font_size(self._current_size)
 
     def _save_and_close(self):

@@ -94,5 +94,5 @@ FTS5 table: `documents_fts`（独立模式，jieba 预分词后手动填充）�
 
 These show "开发中" toast:
 - Batch export（批量导出）
-- Theme switching（部分实现：`resources/styles/dark.qss` 与 `MainWindow._toggle_theme` 已存在但未完善）
+- Theme switching（已实现：`resources/styles/light.qss` + `dark.qss`，通过视图菜单或系统设置切换）
 - System settings（部分实现：`settings_dialog.py` 已提供字体大小设置）

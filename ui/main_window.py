@@ -236,6 +236,22 @@ class MainWindow(QMainWindow):
         # 视图菜单
         view_menu = menubar.addMenu("视图(&V)")
 
+        # 主题切换
+        theme_submenu = view_menu.addMenu("切换主题")
+        from ui.settings_dialog import THEME_LIGHT, THEME_DARK, THEMES, get_theme
+        self._act_theme_light = QAction(THEMES[THEME_LIGHT], self)
+        self._act_theme_light.setCheckable(True)
+        self._act_theme_light.triggered.connect(lambda: self._switch_theme(THEME_LIGHT))
+        theme_submenu.addAction(self._act_theme_light)
+
+        self._act_theme_dark = QAction(THEMES[THEME_DARK], self)
+        self._act_theme_dark.setCheckable(True)
+        self._act_theme_dark.triggered.connect(lambda: self._switch_theme(THEME_DARK))
+        theme_submenu.addAction(self._act_theme_dark)
+
+        # 初始化菜单勾选状态
+        self._update_theme_menu_check()
+
         # 工具菜单
         tools_menu = menubar.addMenu("工具(&T)")
 
@@ -1015,6 +1031,24 @@ class MainWindow(QMainWindow):
             Toast.success(self, "数据库初始化完成")
         except Exception as e:
             Toast.error(self, f"初始化失败: {e}")
+
+    def _switch_theme(self, theme: str):
+        """切换主题（实时预览 + 持久化）"""
+        from ui.settings_dialog import (
+            save_theme, get_font_size, load_qss_content
+        )
+        save_theme(theme)
+        qss_content = load_qss_content(theme, get_font_size())
+        if qss_content:
+            self.setStyleSheet(qss_content)
+        self._update_theme_menu_check()
+
+    def _update_theme_menu_check(self):
+        """更新菜单中主题选项的勾选状态"""
+        from ui.settings_dialog import get_theme, THEME_LIGHT
+        current = get_theme()
+        self._act_theme_light.setChecked(current == THEME_LIGHT)
+        self._act_theme_dark.setChecked(current != THEME_LIGHT)
 
     def _on_settings(self):
         """系统设置"""
