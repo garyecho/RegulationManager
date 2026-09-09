@@ -38,6 +38,7 @@ data/
 test_encoding.txt
 *.bak
 *.log
+test_symlink_fix.*
 
 # Test caches
 .pytest_cache/

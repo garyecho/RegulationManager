@@ -26,6 +26,43 @@ mkdir -p "dist/RegulationManager_${ARCH_LABEL}/data/documents"
 mkdir -p "dist/RegulationManager_${ARCH_LABEL}/data/backups"
 mkdir -p "dist/RegulationManager_${ARCH_LABEL}/data/logs"
 
+# Fix PyMuPDF symlinks: replace broken symlinks with actual files
+echo "Fixing PyMuPDF symlinks..."
+find "dist/RegulationManager_${ARCH_LABEL}/_internal" -name "libmupdf*" -type l | while read link; do
+    # Try to find the actual file
+    target=$(readlink -f "$link" 2>/dev/null || readlink "$link" 2>/dev/null)
+    
+    if [ -n "$target" ] && [ -f "$target" ]; then
+        echo "  Replacing symlink: $(basename "$link") -> $(basename "$target")"
+        rm -f "$link"
+        cp -a "$target" "$link"
+        chmod 755 "$link"
+    else
+        # If symlink is broken, try to find the library in pymupdf package
+        link_name=$(basename "$link")
+        pymupdf_lib=$(find /usr -name "$link_name" -path "*/pymupdf/*" 2>/dev/null | head -1)
+        
+        if [ -n "$pymupdf_lib" ] && [ -f "$pymupdf_lib" ]; then
+            echo "  Found in pymupdf package: $link_name"
+            rm -f "$link"
+            cp -a "$pymupdf_lib" "$link"
+            chmod 755 "$link"
+        else
+            echo "  Warning: Broken symlink found, removing: $link"
+            rm -f "$link"
+        fi
+    fi
+done
+
+# Also fix any other broken symlinks in the distribution
+echo "Checking for other broken symlinks..."
+find "dist/RegulationManager_${ARCH_LABEL}/_internal" -type l | while read link; do
+    if [ ! -e "$link" ]; then
+        echo "  Removing broken symlink: $link"
+        rm -f "$link"
+    fi
+done
+
 # Clean up unnecessary Qt files
 rm -rf "dist/RegulationManager_${ARCH_LABEL}/_internal/PyQt5/Qt5/qml" 2>/dev/null || true
 rm -rf "dist/RegulationManager_${ARCH_LABEL}/_internal/PyQt5/Qt5/translations" 2>/dev/null || true
