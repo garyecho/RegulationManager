@@ -6,8 +6,6 @@ import os
 import sys
 from PyInstaller.utils.hooks import collect_submodules, collect_data_files, collect_dynamic_libs
 
-block_cipher = None
-
 # ── 架构感知命名 ──
 BUILD_ARCH = os.environ.get("BUILD_ARCH", "")
 OUTPUT_NAME = f"RegulationManager_{BUILD_ARCH}" if BUILD_ARCH else "RegulationManager"
@@ -71,10 +69,9 @@ a = Analysis(
         'PyQt5.QtOpenGL', 'PyQt5.QtSql',
     ],
     noarchive=False,
-    cipher=block_cipher,
 )
 
-pyz = PYZ(a.pure, cipher=block_cipher)
+pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,

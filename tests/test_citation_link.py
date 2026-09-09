@@ -70,7 +70,7 @@ class TestRender(unittest.TestCase):
         with patch("core.scorecard_service._resolve_citation", return_value=None):
             out = render_linked_html("见《不存在的文件》")
         self.assertIn('href="missing://', out)
-        self.assertIn("#999999", out)
+        self.assertIn('class="missing-link"', out)
 
     def test_plain_text_untouched(self):
         self.assertEqual(render_linked_html("普通文本（一）"), "普通文本（一）")

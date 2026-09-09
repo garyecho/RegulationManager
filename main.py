@@ -55,12 +55,14 @@ def main():
     except AttributeError:
         pass  # Qt 5.14+ 默认启用
 
-    # 定位 Qt 平台插件：uv 托管 Python 下 Qt 默认按解释器目录找插件，
-    # 显式加入 PyQt5 wheel 自带的插件目录（打包模式由 pyi_rth_qt5.py 处理）。
-    import PyQt5
-    _plugins_dir = Path(PyQt5.__file__).resolve().parent / "Qt5" / "plugins"
-    if _plugins_dir.exists():
-        QtCore.QCoreApplication.addLibraryPath(str(_plugins_dir))
+    # 定位 Qt 平台插件：开发模式下手动加入 PyQt5 wheel 的插件目录；
+    # 打包模式由 pyi_rth_qt5.py 在启动时通过 QT_PLUGIN_PATH 环境变量处理，
+    # 此处仅在非打包模式下生效。
+    if not getattr(sys, 'frozen', False):
+        import PyQt5
+        _plugins_dir = Path(PyQt5.__file__).resolve().parent / "Qt5" / "plugins"
+        if _plugins_dir.exists():
+            QtCore.QCoreApplication.addLibraryPath(str(_plugins_dir))
 
     # 创建应用
     app = QApplication(sys.argv)

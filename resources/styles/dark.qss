@@ -1105,3 +1105,12 @@ QCalendarWidget QAbstractItemView:item:selected {
     background: transparent;
     line-height: 1.6;
 }
+
+/* ── 设置对话框 ──────────────────────────────────────────── */
+#SettingsSizeLabel {
+    font-weight: bold;
+}
+#SettingsTipLabel {
+    color: #9CA3AF;
+    font-size: 12px;
+}

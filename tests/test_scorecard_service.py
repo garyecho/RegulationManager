@@ -127,7 +127,7 @@ class ScorecardServiceTests(unittest.TestCase):
             "依据《银行保险机构公司治理准则》（银保监发〔2021〕14 号）及《未知文件》")
         self.assertIn('href="doc://', html)      # 已匹配 → 蓝链
         self.assertIn('href="missing://', html)  # 未匹配 → 灰链
-        self.assertIn('#999999', html)
+        self.assertIn('class="missing-link"', html)
 
     def test_ignore_auto_links_prevents_resync(self):
         """移除自动关联 → 记入忽略清单 → 再次 sync 不会重新插入"""

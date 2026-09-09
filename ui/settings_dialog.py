@@ -23,8 +23,13 @@ THEMES = {
 
 
 def get_settings() -> QSettings:
-    """获取 QSettings 实例"""
-    return QSettings("RegulationManager", "RegulationManager")
+    """获取 QSettings 实例（INI 文件存储，避免注册表 32/64 位冲突）"""
+    settings = QSettings(
+        str(config.DATA_DIR / "settings.ini"),
+        QSettings.IniFormat
+    )
+    settings.setIniCodec("UTF-8")
+    return settings
 
 
 def get_font_size() -> int:
@@ -117,7 +122,7 @@ class SettingsDialog(QDialog):
 
         self._size_label = QLabel("14 px")
         self._size_label.setMinimumWidth(50)
-        self._size_label.setStyleSheet("font-weight: bold;")
+        self._size_label.setObjectName("SettingsSizeLabel")
         size_layout.addWidget(self._size_label)
 
         appearance_layout.addRow("字体大小：", size_widget)
@@ -149,7 +154,7 @@ class SettingsDialog(QDialog):
 
         # ── 提示信息 ──
         tip_label = QLabel("提示：部分界面需重启后完全生效。")
-        tip_label.setStyleSheet("color: #888; font-size: 12px;")
+        tip_label.setObjectName("SettingsTipLabel")
         layout.addWidget(tip_label)
 
         layout.addStretch()

@@ -1018,7 +1018,7 @@ QCalendarWidget QAbstractItemView:item:selected {
 }
 
 #ScorecardFieldCard {
-    background-color: #02E888;
+    background-color: #7bff00;
     border: 1px solid #E5E7EB;
     border-left: 3px solid #6366F1;
     border-radius: 8px;
@@ -1102,4 +1102,13 @@ QCalendarWidget QAbstractItemView:item:selected {
     color: #9CA3AF;
     background: transparent;
     line-height: 1.6;
+}
+
+/* ── 设置对话框 ──────────────────────────────────────────── */
+#SettingsSizeLabel {
+    font-weight: bold;
+}
+#SettingsTipLabel {
+    color: #888888;
+    font-size: 12px;
 }

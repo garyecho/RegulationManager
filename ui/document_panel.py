@@ -258,10 +258,12 @@ class DocumentPanel(QWidget):
         from ui.settings_dialog import get_font_size
         cur_size = get_font_size()
         checkbox_width = max(40, cur_size * 2 + 10)
+        title_width = max(320, cur_size * 22)
         status_width = max(90, cur_size * 6 + 10)
         action_width = max(90, cur_size * 5 + 20)
 
         table.setColumnWidth(0, checkbox_width)
+        table.setColumnWidth(1, title_width)
         table.setColumnWidth(4, status_width)
         table.setColumnWidth(6, action_width)
 
@@ -286,23 +288,24 @@ class DocumentPanel(QWidget):
         return table
 
     def _save_header_state(self):
-        """保存表头状态（列宽+顺序）到 QSettings"""
-        from PyQt5.QtCore import QSettings
+        """保存表头状态（列宽+顺序）到 QSettings（INI 文件）"""
+        from ui.settings_dialog import get_settings
         state = self._table.horizontalHeader().saveState()
-        QSettings("RegulationManager", "RegulationManager").setValue(
-            "ui/table_header_state", state
-        )
+        get_settings().setValue("ui/table_header_state", state)
 
     def _restore_header_state(self):
-        """从 QSettings 恢复表头状态"""
-        from PyQt5.QtCore import QSettings
-        state = QSettings("RegulationManager", "RegulationManager").value(
-            "ui/table_header_state"
-        )
+        """从 QSettings 恢复表头状态，确保标题列有足够最小宽度"""
+        from ui.settings_dialog import get_settings
+        state = get_settings().value("ui/table_header_state")
         if state is not None:
             self._restoring_header = True
             self._table.horizontalHeader().restoreState(state)
             self._restoring_header = False
+        # 恢复后保护标题列最小宽度，防止被旧状态压缩过窄
+        from ui.settings_dialog import get_font_size
+        min_title = max(240, get_font_size() * 16)
+        if self._table.columnWidth(1) < min_title:
+            self._table.setColumnWidth(1, min_title)
 
     def _on_header_changed(self, *args):
         """列宽或顺序变化时保存"""
@@ -469,11 +472,13 @@ class DocumentPanel(QWidget):
         cur_size = get_font_size()
         new_height = max(44, cur_size * 3 + 8)
         checkbox_width = max(40, cur_size * 2 + 10)
+        title_width = max(320, cur_size * 22)
         status_width = max(90, cur_size * 6 + 10)
         action_width = max(90, cur_size * 5 + 20)
 
         self._table.verticalHeader().setDefaultSectionSize(new_height)
         self._table.setColumnWidth(0, checkbox_width)
+        self._table.setColumnWidth(1, title_width)
         self._table.setColumnWidth(4, status_width)
         self._table.setColumnWidth(6, action_width)
         # 刷新当前显示
@@ -543,18 +548,34 @@ class DocumentPanel(QWidget):
                 lambda state, did=doc.id: self._on_checkbox_changed(state, did)
             )
 
-            # 标题列（包含搜索摘要，关键词高亮）
+            # 标题列（含搜索摘要时多行显示，否则单行省略号）
             if doc.snippet:
-                title_html = f"<div style='margin:2px 0;font-size:{cur_size}px'>{self._highlight(doc.title)}</div><div style='color:#888;font-size:{snippet_size}px'>{self._highlight(doc.snippet)}</div>"
+                title_html = (
+                    f"<div style='margin:2px 0;font-size:{cur_size}px'>"
+                    f"{self._highlight(doc.title)}</div>"
+                    f"<div style='color:#888;font-size:{snippet_size}px'>"
+                    f"{self._highlight(doc.snippet)}</div>"
+                )
+                multiline = True
             else:
-                title_html = f"<div style='font-size:{cur_size}px'>{self._highlight(doc.title)}</div>"
+                title_html = (
+                    f"<div style='font-size:{cur_size}px'>"
+                    f"{self._highlight(doc.title)}</div>"
+                )
+                multiline = False
 
             title_label = ClickableLabel()
             title_label.setTextFormat(Qt.RichText)
             title_label.setText(title_html)
-            title_label.setWordWrap(True)
+            # 有搜索摘要时允许多行；否则单行省略号，防止文字被裁
+            title_label.setWordWrap(multiline)
             title_label.setStyleSheet(f"padding: 4px 8px; font-size: {cur_size}px;")
             title_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            # 悬停显示完整标题（纯文本，去 HTML 标签）
+            plain_title = doc.title
+            if doc.doc_no:
+                plain_title += f"\n文号：{doc.doc_no}"
+            title_label.setToolTip(plain_title)
             # 双击标题打开文档
             doc_id = doc.id
             title_label.double_clicked.connect(lambda did=doc_id: self.document_opened.emit(did))
@@ -592,6 +613,16 @@ class DocumentPanel(QWidget):
             edit_layout.setAlignment(Qt.AlignCenter)
             edit_layout.setContentsMargins(0, 0, 0, 0)
             table.setCellWidget(row, 6, edit_widget)
+
+            # ── 行高自适应：根据标题 label 的实际内容高度调整 ──
+            if multiline:
+                # 有搜索摘要时允许换行，需要自适应行高
+                title_label.adjustSize()
+                needed_height = max(
+                    title_label.sizeHint().height() + 8,
+                    max(44, cur_size * 3 + 8)
+                )
+                table.verticalHeader().resizeSection(row, needed_height)
 
         table.blockSignals(False)
         table.setColumnHidden(0, self._panel_mode == MODE_BROWSE)

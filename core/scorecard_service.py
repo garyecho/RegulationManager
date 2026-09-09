@@ -401,9 +401,7 @@ def render_linked_html(text: str, dark_theme: bool = False) -> str:
         label = html.escape(m.group(0))
         if doc_id:
             return f'<a href="doc://{doc_id}">{label}</a>'
-        return f'<a href="missing://{quote(m.group(0))}">{label}</a>'
-
-    return _CITATION_RE.sub(_repl, html.escape(text or ""))
+        return f'<a class="missing-link" href="missing://{quote(m.group(0))}">{label}</a>'
 
     return _CITATION_RE.sub(_repl, html.escape(text or ""))
 
