@@ -88,8 +88,27 @@ git commit -m "feat: 新增xxx功能"   # 3. 提交
 
 ```bash
 git push                       # 公司：upstream 是 gitlab，直接推内网
-git push origin master         # 家里：内网连不上，推 GitHub
+git push github master         # 家里：内网连不上，推 GitHub
 ```
+
+### 同时推送到两个仓库
+
+在公司机器上，如需同时推送到 GitHub 和 GitLab：
+
+```bash
+git push gitlab master && git push github master
+```
+
+或者设置一个合并 remote 一次推两个：
+
+```bash
+git remote add all gitlab
+git remote set-url --add --push all gitlab
+git remote set-url --add --push all github
+git push all master             # 同时推送到两个仓库
+```
+
+> ⚠️ 公司网络推 GitHub 需要代理（见下方 FAQ）。
 
 ### 换机器同步
 
@@ -123,6 +142,7 @@ git pull github master         # 家里机器上：拉取公司同步的改动
 | 界面中文显示方块 | 安装中文字体：`sudo apt install fonts-noto-cjk` |
 | `.doc` 文档提取不到正文 | 确认安装了 `antiword`；部分老 .doc 只能靠正则回退，效果打折属正常 |
 | 提交时把 data/ 加进暂存 | `data/`、`*.db`、`venv*`、`build/`、`dist/` 已在 `.gitignore`，正常情况下不会出现；若出现请检查是否有文件被强制 `git add -f` |
+| `git add` 时出现 `LF will be replaced by CRLF` 警告 | Windows 默认 `core.autocrlf = true`，Git 在 add 时会将 LF 换行符转为 CRLF。此警告无害，不影响功能。若想消除，可在仓库根目录创建 `.gitattributes` 文件，指定换行符规则（如 `*.py text eol=lf`） |
 | 公司网络推 GitHub 报 `Failed to connect to github.com port 443` | 公司出口对 GitHub 直连不稳定，已为 git 配置本机代理（**仅对 github.com 生效**，内网 gitlab 直连不受影响）：`git config --global http.https://github.com.proxy http://127.0.0.1:7890`。需本机代理软件（如 Clash）在运行；若代理软件未启动，先启动它再推送 |
 | 代理下报 `schannel: failed to receive handshake, SSL/TLS connection failed` | git 走代理时 Windows schannel 后端握手失败，已切换为 OpenSSL 后端：`git config --global http.sslBackend openssl` |
 

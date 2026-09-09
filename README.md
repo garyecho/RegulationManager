@@ -297,6 +297,30 @@ chmod +x build_linux.sh && ./build_linux.sh
 - 制度关联：在检查项详情中关联已有制度文档，评分要点中的制度引用会自动识别并生成超链接
 - 打开关联制度：点击蓝色链接可直接打开对应制度文件
 
+## 版本控制与远程仓库
+
+本项目使用双远程仓库，公司内网 GitLab 作为主仓库，GitHub 作为私有镜像备份。
+
+| remote | 地址 | 用途 |
+|--------|------|------|
+| `gitlab` | `http://192.168.10.238:30080/development/regulationmanager.git` | 日常开发主仓库 |
+| `github` | `https://github.com/garyecho/RegulationManager.git` | 私有镜像备份 |
+
+### 同时推送到两个仓库
+
+```bash
+# 方式一：依次推送
+git push gitlab master && git push github master
+
+# 方式二：设置合并 remote 一次推两个
+git remote add all gitlab
+git remote set-url --add --push all gitlab
+git remote set-url --add --push all github
+git push all master
+```
+
+> 公司网络推 GitHub 可能需要代理，详见 [DEVELOPMENT.md](./DEVELOPMENT.md)。
+
 ## 技术栈
 
 | 组件 | 技术 |
@@ -337,6 +361,12 @@ chmod +x build_linux.sh && ./build_linux.sh
 
 **Q: 麒麟系统无法使用中文输入法？**
 确保系统已安装 fcitx 输入法框架，执行：`sudo apt install fcitx-frontend-qt5 -y`
+
+**Q: `git add` 时出现 `LF will be replaced by CRLF` 警告？**
+Windows 默认配置 `core.autocrlf = true`，Git 会在暂存时将 LF 转换为 CRLF。此警告无害，不影响功能。若想消除，可在仓库根目录创建 `.gitattributes` 文件指定换行符规则（如 `*.py text eol=lf`）。
+
+**Q: `git add` 时出现 `LF will be replaced by CRLF` 警告？**
+这是 Windows 默认 `core.autocrlf = true` 导致的，Git 会将 LF 换行符转为 CRLF。此警告无害，不影响功能。若想消除，可在仓库根目录创建 `.gitattributes` 文件，指定换行符规则（如 `*.py text eol=lf`）。
 
 ## 版本历史
 
