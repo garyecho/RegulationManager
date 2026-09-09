@@ -39,7 +39,7 @@ RegulationManager/
 ├── config.py                      # 全局配置（路径/数据库/常量）
 │
 ├── database/                      # 数据层
-│   ├── models.py                  # SQLAlchemy ORM 模型（Document/Category/Tag/Scorecard*）
+│   ├── models.py                  # SQLAlchemy ORM 模型（11 表：Document/Category/Tag/Scorecard*）
 │   ├── crud.py                    # CRUD 操作（DocumentCRUD/CategoryCRUD/TagCRUD）
 │   └── migrations.py              # 数据库初始化 + FTS5 索引 + 路径迁移 + 正文补提 + 打分卡灌库
 │
@@ -77,8 +77,13 @@ RegulationManager/
 │   │   ├── light.qss              # 浅色主题（唯一样式入口）
 │   │   └── dark.qss               # 深色主题（备用）
 │   └── rating/
-│       ├── scorecard_city.json    # 城商/农商/民营 打分卡内置数据
-│       └── scorecard_village.json # 村镇银行打分卡内置数据
+│       ├── scorecard_city.json    # 城商/农商/民营 打分卡内置数据（228 项）
+│       └── scorecard_village.json # 村镇银行打分卡内置数据（146 项）
+│
+├── tests/                         # 单元测试
+│   ├── test_document_service.py   # 文档 CRUD + FTS5 + 标签 + 批量操作
+│   ├── test_scorecard_service.py  # 打分卡 seed/树/重名/关联/搜索
+│   └── test_citation_link.py      # 引用正则 + 归一化 + 匹配 + sync
 │
 ├── data/                          # 运行时数据（不入版本控制）
 │   ├── regulation.db              # SQLite 数据库
@@ -88,6 +93,7 @@ RegulationManager/
 │
 ├── dist_files/                    # 打包交付文件
 │   ├── README.txt                 # 用户使用说明
+│   ├── CHANGELOG.txt              # 更新日志
 │   └── backup.txt                 # 备份说明
 │
 ├── RegulationManager.spec         # PyInstaller 打包配置
@@ -118,26 +124,19 @@ RegulationManager/
 
 ## 开发环境
 
-### 1. 创建虚拟环境
+> 详细开发环境搭建、双机提交流程、常见问题排查请参阅 **[DEVELOPMENT.md](./DEVELOPMENT.md)**。
 
-```powershell
-cd D:\Code\RegulationManager
-python -m venv venv
-.\venv\Scripts\activate
+### 快速启动（Linux）
+
+```bash
+uv sync
+uv run python main.py
 ```
 
-### 2. 安装依赖
+### 快速启动（Windows）
 
 ```powershell
-pip install PyQt5 SQLAlchemy PyMuPDF python-docx jieba -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn
-```
-
-> PyQt5 支持 Python 3.5-3.11，不支持 3.12+。推荐 Python 3.8 或 3.10。
-
-### 3. 启动
-
-```powershell
-python main.py
+venv38\Scripts\python.exe main.py
 ```
 
 程序启动时自动：
@@ -303,9 +302,9 @@ chmod +x build_linux.sh && ./build_linux.sh
 | 组件 | 技术 |
 |------|------|
 | GUI | PyQt5 5.15（兼容 Win7~Win11 / 麒麟 v10~v11） |
-| 数据库 | SQLite + SQLAlchemy（16 张表：4 文档域 + 6 打分卡域 + FTS5 + 6 系统） |
+| 数据库 | SQLite + SQLAlchemy（11 张 ORM 表：4 文档域 + 7 打分卡域 + FTS5 虚拟表） |
 | 全文搜索 | SQLite FTS5 + jieba 中文分词 |
-| 正文提取 | PyMuPDF (PDF)、python-docx (DOCX) |
+| 正文提取 | PyMuPDF (PDF)、python-docx (DOCX)、antiword (DOC，可选) |
 | 打包 | PyInstaller 6.x (onedir) / Docker 容器构建 |
 | 主题 | 浅色主题 QSS（集中管理） |
 | 平台 | Windows (x64/x86)、银河麒麟 (x86_64) |

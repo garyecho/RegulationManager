@@ -13,7 +13,7 @@
 | Linux（家里 Ubuntu） | 装 uv → `uv sync` → `sudo apt install antiword fonts-noto-cjk` | `uv run python main.py` |
 | Windows（公司，环境已配好） | 无需（依赖在 `venv38` 内） | `venv38\Scripts\python.exe main.py` |
 
-首次启动会自动完成：创建 `data/`（`documents/`、`backups/`、`logs/`）→ 建库 `data/regulation.db`（4 张表）→ 重建 FTS5 全文索引（jieba 分词），全程无需手工初始化。
+首次启动会自动完成：创建 `data/`（`documents/`、`backups/`、`logs/`）→ 建库 `data/regulation.db`（11 张 ORM 表：4 文档域 + 7 打分卡域）→ 重建 FTS5 全文索引（jieba 分词）→ 灌入打分卡内置数据（幂等），全程无需手工初始化。
 
 ## 双远程仓库
 
@@ -58,9 +58,9 @@ sudo apt install antiword fonts-noto-cjk
 uv run python main.py
 ```
 
-首次启动自动完成：创建 `data/documents`、`data/backups`、`data/logs` → 建库 `data/regulation.db` → 重建 FTS5 搜索索引（jieba 分词）。
+首次启动自动完成：创建 `data/documents`、`data/backups`、`data/logs` → 建库 `data/regulation.db`（11 张 ORM 表 + FTS5）→ 重建 FTS5 搜索索引（jieba 分词）→ 灌入打分卡内置数据。
 
-跑通自检：① 窗口正常打开（标题"制度汇编管理系统"）；② 能添加分类；③ 导入 .pdf/.docx 后出现在列表、搜索能命中；④ 装过 antiword 时，老 .doc 也能提取出正文。
+跑通自检：① 窗口正常打开（标题"制度汇编管理系统"）；② 能添加分类；③ 导入 .pdf/.docx 后出现在列表、搜索能命中；④ 装过 antiword 时，老 .doc 也能提取出正文；⑤ 左侧导航栏「🏦 评级打分卡」可打开打分卡面板。
 
 > 说明：`uv sync` = 创建项目内 `.venv/` + 按 `pyproject.toml` / `uv.lock` 安装依赖；本项目是平铺桌面应用（`python main.py` 启动），`pyproject.toml` 已设 `[tool.uv] package = false`，不会把自己构建成包。依赖有变动（改了 pyproject）时重跑 `uv sync` 即可；之后日常启动永远只需 `uv run python main.py`。
 
