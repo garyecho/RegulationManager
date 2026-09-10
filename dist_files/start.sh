@@ -23,8 +23,10 @@ chmod +x "$APP_EXE" || {
     exit 1
 }
 
-# 启用中文输入法
+# 设置 Qt 环境变量
 export QT_IM_MODULE="${QT_IM_MODULE:-fcitx}"
+export QT_QPA_PLATFORM_PLUGIN_PATH="$APP_DIR/_internal/PyQt5/Qt/plugins/platforms"
+export LD_LIBRARY_PATH="$APP_DIR/_internal:${LD_LIBRARY_PATH:-}"
 
 # 启动程序
 cd "$APP_DIR"
