@@ -529,11 +529,6 @@ class DocumentPanel(QWidget):
         table.setRowCount(len(self._documents))
         table.blockSignals(True)
 
-        # 获取字体大小（只调用一次）
-        from ui.settings_dialog import get_font_size
-        cur_size = get_font_size()
-        snippet_size = max(11, cur_size - 3)
-
         for row, doc in enumerate(self._documents):
             # 复选框列
             cb = QCheckBox()
@@ -551,17 +546,14 @@ class DocumentPanel(QWidget):
             # 标题列（含搜索摘要时多行显示，否则单行省略号）
             if doc.snippet:
                 title_html = (
-                    f"<div style='margin:2px 0;font-size:{cur_size}px'>"
+                    f"<div style='margin:2px 0'>"
                     f"{self._highlight(doc.title)}</div>"
-                    f"<div style='color:#888;font-size:{snippet_size}px'>"
+                    f"<div style='color:#888;font-size:smaller'>"
                     f"{self._highlight(doc.snippet)}</div>"
                 )
                 multiline = True
             else:
-                title_html = (
-                    f"<div style='font-size:{cur_size}px'>"
-                    f"{self._highlight(doc.title)}</div>"
-                )
+                title_html = self._highlight(doc.title)
                 multiline = False
 
             title_label = ClickableLabel()
@@ -569,7 +561,7 @@ class DocumentPanel(QWidget):
             title_label.setText(title_html)
             # 有搜索摘要时允许多行；否则单行省略号，防止文字被裁
             title_label.setWordWrap(multiline)
-            title_label.setStyleSheet(f"padding: 4px 8px; font-size: {cur_size}px;")
+            title_label.setObjectName("TableTitleLabel")
             title_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             # 悬停显示完整标题（纯文本，去 HTML 标签）
             plain_title = doc.title

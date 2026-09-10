@@ -16,7 +16,6 @@ from PyQt5.QtWidgets import (
 from models import DocumentData, CategoryData
 from config import DOC_STATUS_LABELS
 from ui.components.tag_input import TagInput
-from ui.styles import _FONT
 from utils.text_parser import extract_doc_no, extract_title_and_doc_no
 
 
@@ -121,7 +120,8 @@ class AddEditDialog(QDialog):
         docno_layout.addWidget(self._btn_re_extract)
 
         self._extract_hint = QLabel("")
-        self._extract_hint.setStyleSheet(f"color: #34d399; font-size: 11px; font-family: {_FONT};")
+        self._extract_hint.setObjectName("ExtractHint")
+        self._extract_hint.setStyleSheet("color: #34d399;")
         docno_layout.addWidget(self._extract_hint)
         self._extract_hint.hide()
 
@@ -240,7 +240,7 @@ class AddEditDialog(QDialog):
 
     def _show_extract_hint(self, msg: str, is_error: bool = False):
         color = "#f87171" if is_error else "#34d399"
-        self._extract_hint.setStyleSheet(f"color: {color}; font-size: 11px; font-family: {_FONT};")
+        self._extract_hint.setStyleSheet(f"color: {color};")
         self._extract_hint.setText(msg)
         self._extract_hint.show()
         QTimer.singleShot(3000, self._hide_extract_hint)

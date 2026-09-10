@@ -143,7 +143,7 @@ class ScorecardCheckDialog(QDialog):
         if self._auto_ids:
             btn_clear_auto = QPushButton("清空自动关联（保留手动）")
             btn_clear_auto.setFixedWidth(180)
-            btn_clear_auto.setStyleSheet("color: #996600;")
+            btn_clear_auto.setObjectName("ClearAutoLinkBtn")
             btn_clear_auto.clicked.connect(self._clear_auto_links)
             link_layout.addWidget(btn_clear_auto)
 

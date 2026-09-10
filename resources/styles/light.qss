@@ -654,6 +654,10 @@ QLabel {
     color: #4F46E5;
     font-size: 11px;
 }
+#CardSnippet {
+    font-size: 11px;
+    color: #666;
+}
 #CardStatus {
     font-size: 11px;
     font-weight: bold;
@@ -661,6 +665,11 @@ QLabel {
 #CardFileType {
     color: #999999;
     font-size: 11px;
+}
+
+/* ── 文档列表标题列 ──────────────────────────────────────── */
+#TableTitleLabel {
+    padding: 4px 8px;
 }
 
 /* ── 状态栏 ──────────────────────────────────────────────── */
@@ -1104,6 +1113,49 @@ QCalendarWidget QAbstractItemView:item:selected {
     line-height: 1.6;
 }
 
+/* ── 重复文件对话框 ────────────────────────────────────────── */
+#DupDialogIcon {
+    font-size: 32px;
+}
+#DupDialogMsg {
+    font-size: 13px;
+}
+#DupBtnSkip {
+    background: #10B981;
+    color: white;
+    padding: 10px;
+    font-weight: bold;
+}
+#DupBtnSkip:hover {
+    background: #059669;
+}
+#DupBtnImport {
+    background: #FFC107;
+    color: #333;
+    padding: 10px;
+}
+#DupBtnImport:hover {
+    background: #E0A800;
+}
+#DupBtnCancel {
+    background: #6C757D;
+    color: white;
+    padding: 10px;
+}
+#DupBtnCancel:hover {
+    background: #5A6268;
+}
+#DupBtnDesc {
+    color: #666;
+    font-size: 11px;
+}
+
+/* ── 打分卡占位图标 ──────────────────────────────────────── */
+#ScorecardPlaceholderIcon {
+    font-size: 48px;
+    background: transparent;
+}
+
 /* ── 设置对话框 ──────────────────────────────────────────── */
 #SettingsSizeLabel {
     font-weight: bold;
@@ -1111,4 +1163,9 @@ QCalendarWidget QAbstractItemView:item:selected {
 #SettingsTipLabel {
     color: #888888;
     font-size: 12px;
+}
+
+/* ── 打分卡编辑 — 清空自动关联按钮 ──────────────────────── */
+#ClearAutoLinkBtn {
+    color: #996600;
 }

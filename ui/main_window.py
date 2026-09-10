@@ -184,7 +184,7 @@ class MainWindow(QMainWindow):
             # 大数字
             val_label = QLabel(value)
             val_label.setObjectName("StatsCardValue")
-            val_label.setStyleSheet(f"color: {accent}; background: transparent;")
+            val_label.setStyleSheet(f"color: {accent};")
             card_layout.addWidget(val_label)
 
             # 描述
@@ -843,13 +843,13 @@ class MainWindow(QMainWindow):
             # 图标和消息
             msg_layout = QHBoxLayout()
             icon_label = QLabel("⚠️")
-            icon_label.setStyleSheet("font-size: 32px;")
+            icon_label.setObjectName("DupDialogIcon")
             icon_label.setAlignment(Qt.AlignTop)
             msg_layout.addWidget(icon_label)
             
             msg_text = QLabel(dup_msg)
             msg_text.setWordWrap(True)
-            msg_text.setStyleSheet("font-size: 13px;")
+            msg_text.setObjectName("DupDialogMsg")
             msg_layout.addWidget(msg_text, 1)
             dlg_layout.addLayout(msg_layout)
             
@@ -859,29 +859,29 @@ class MainWindow(QMainWindow):
             
             # 跳过重复文件
             btn_skip = QPushButton("跳过重复文件（推荐）")
-            btn_skip.setStyleSheet("QPushButton { background: #10B981; color: white; padding: 10px; font-weight: bold; } QPushButton:hover { background: #059669; }")
+            btn_skip.setObjectName("DupBtnSkip")
             btn_skip.clicked.connect(lambda: dlg.done(1))
             btn_layout.addWidget(btn_skip)
             skip_desc = QLabel("    只导入新文件，跳过已存在的文件")
-            skip_desc.setStyleSheet("color: #666; font-size: 11px;")
+            skip_desc.setObjectName("DupBtnDesc")
             btn_layout.addWidget(skip_desc)
             
             # 继续导入
             btn_import = QPushButton("继续导入（创建重复）")
-            btn_import.setStyleSheet("QPushButton { background: #FFC107; color: #333; padding: 10px; } QPushButton:hover { background: #E0A800; }")
+            btn_import.setObjectName("DupBtnImport")
             btn_import.clicked.connect(lambda: dlg.done(2))
             btn_layout.addWidget(btn_import)
             import_desc = QLabel("    导入所有文件，包括重复的（会创建重复记录）")
-            import_desc.setStyleSheet("color: #666; font-size: 11px;")
+            import_desc.setObjectName("DupBtnDesc")
             btn_layout.addWidget(import_desc)
             
             # 取消
             btn_cancel = QPushButton("取消导入")
-            btn_cancel.setStyleSheet("QPushButton { background: #6C757D; color: white; padding: 10px; } QPushButton:hover { background: #5A6268; }")
+            btn_cancel.setObjectName("DupBtnCancel")
             btn_cancel.clicked.connect(lambda: dlg.done(0))
             btn_layout.addWidget(btn_cancel)
             cancel_desc = QLabel("    取消本次批量导入操作")
-            cancel_desc.setStyleSheet("color: #666; font-size: 11px;")
+            cancel_desc.setObjectName("DupBtnDesc")
             btn_layout.addWidget(cancel_desc)
             
             dlg_layout.addLayout(btn_layout)

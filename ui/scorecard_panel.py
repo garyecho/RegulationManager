@@ -339,7 +339,7 @@ class ScorecardPanel(QWidget):
         vbox = QVBoxLayout(container)
         vbox.setAlignment(Qt.AlignCenter)
         icon = QLabel("📋")
-        icon.setStyleSheet("font-size: 48px; background: transparent;")
+        icon.setObjectName("ScorecardPlaceholderIcon")
         icon.setAlignment(Qt.AlignCenter)
         vbox.addWidget(icon)
         hint = QLabel(text)

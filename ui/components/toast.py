@@ -4,8 +4,6 @@ Toast 弹出提示组件
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QLabel, QWidget
 
-from ui.styles import _FONT
-
 
 class Toast(QLabel):
     """右下角弹出式 Toast 提示"""
@@ -36,22 +34,19 @@ class Toast(QLabel):
         self.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.setFixedWidth(320)
         self.setWordWrap(True)
+        self.setObjectName("Toast")
 
     def show_message(self, message: str, msg_type: str = INFO, duration: int = 3000):
         bg, fg, border = self._COLORS.get(msg_type, self._COLORS[self.INFO])
         icon = self._ICONS.get(msg_type, "")
 
         self.setText(f"  {icon}  {message}")
+        # 颜色是动态的（按类型变化），只能内联；字号走 QSS #Toast 选择器
         self.setStyleSheet(f"""
             QLabel {{
                 background-color: {bg};
                 color: {fg};
                 border: 1px solid {border};
-                border-radius: 10px;
-                padding: 12px 16px;
-                font-size: 13px;
-                font-weight: bold;
-                font-family: {_FONT};
             }}
         """)
 

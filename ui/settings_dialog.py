@@ -57,16 +57,27 @@ def save_theme(theme: str):
 
 
 def load_qss_content(theme: str, font_size: int) -> str:
-    """加载指定主题的 QSS 内容，并替换字体大小"""
+    """加载指定主题的 QSS 内容，并等比缩放所有字体大小"""
     filename = "dark.qss" if theme == THEME_DARK else "light.qss"
     qss_path = config.RESOURCES_DIR / "styles" / filename
     if not qss_path.exists():
         return ""
     with open(qss_path, "r", encoding="utf-8") as f:
         qss_content = f.read()
-    # 替换 QSS 中的字体大小为用户设置值
-    qss_content = re.sub(r'font-size:\s*14px', f'font-size: {font_size}px', qss_content)
+    # 等比缩放所有 QSS 中的字体大小
+    scale = font_size / DEFAULT_FONT_SIZE
+    def _scale_size(match):
+        px = int(match.group(1))
+        return f'font-size: {round(px * scale)}px'
+    qss_content = re.sub(r'font-size:\s*(\d+)px', _scale_size, qss_content)
     return qss_content
+
+
+def scale_font_size(size: int) -> int:
+    """根据当前设置缩放字号"""
+    current_size = get_font_size()
+    scale = current_size / DEFAULT_FONT_SIZE
+    return round(size * scale)
 
 
 def apply_font_size(size: int, app=None):
