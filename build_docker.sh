@@ -26,6 +26,9 @@ mkdir -p "dist/RegulationManager_${ARCH_LABEL}/data/documents"
 mkdir -p "dist/RegulationManager_${ARCH_LABEL}/data/backups"
 mkdir -p "dist/RegulationManager_${ARCH_LABEL}/data/logs"
 
+# 确保 data 目录对所有用户可写（Docker 容器内以 root 创建，宿主机用户需要写权限）
+chmod -R 777 "dist/RegulationManager_${ARCH_LABEL}/data"
+
 # Fix PyMuPDF symlinks: replace broken symlinks with actual files
 echo "Fixing PyMuPDF symlinks..."
 find "dist/RegulationManager_${ARCH_LABEL}/_internal" -name "libmupdf*" -type l | while read link; do
@@ -71,14 +74,18 @@ rm -rf "dist/RegulationManager_${ARCH_LABEL}/_internal/PyQt5/Qt5/translations" 2
 cp dist_files/README.txt "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
 cp dist_files/backup.txt "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
 cp dist_files/CHANGELOG.txt "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
+cp "dist_files/使用说明.txt" "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
 cp dist_files/start.sh "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
 cp dist_files/install.sh "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
-cp dist_files/Launch_RegulationManager.desktop "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
-cp dist_files/Install_RegulationManager.desktop "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
+cp "dist_files/启动制度管理系统.sh" "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
+cp "dist_files/安装到开始菜单.sh" "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
+cp "dist_files/卸载程序.sh" "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
+
 chmod +x "dist/RegulationManager_${ARCH_LABEL}/start.sh"
 chmod +x "dist/RegulationManager_${ARCH_LABEL}/install.sh"
-chmod +x "dist/RegulationManager_${ARCH_LABEL}/Launch_RegulationManager.desktop"
-chmod +x "dist/RegulationManager_${ARCH_LABEL}/Install_RegulationManager.desktop"
+chmod +x "dist/RegulationManager_${ARCH_LABEL}/启动制度管理系统.sh"
+chmod +x "dist/RegulationManager_${ARCH_LABEL}/安装到开始菜单.sh"
+chmod +x "dist/RegulationManager_${ARCH_LABEL}/卸载程序.sh"
 
 # Copy fcitx input method plugin for Chinese input on Kylin
 FCITX_PLUGIN=$(find /usr -name "libfcitxplatforminputcontextplugin.so" 2>/dev/null | head -1)
@@ -86,6 +93,19 @@ if [ -n "$FCITX_PLUGIN" ]; then
     mkdir -p "dist/RegulationManager_${ARCH_LABEL}/_internal/PyQt5/Qt5/plugins/platforminputcontexts"
     cp "$FCITX_PLUGIN" "dist/RegulationManager_${ARCH_LABEL}/_internal/PyQt5/Qt5/plugins/platforminputcontexts/"
 fi
+
+# Install application icon for desktop environment
+echo "Installing application icon..."
+mkdir -p "dist/RegulationManager_${ARCH_LABEL}/share/icons/hicolor/256x256/apps"
+cp resources/icons/regulation_manager.png "dist/RegulationManager_${ARCH_LABEL}/share/icons/hicolor/256x256/apps/" 2>/dev/null || true
+mkdir -p "dist/RegulationManager_${ARCH_LABEL}/share/icons/hicolor/128x128/apps"
+cp resources/icons/icon_128.png "dist/RegulationManager_${ARCH_LABEL}/share/icons/hicolor/128x128/apps/regulation_manager.png" 2>/dev/null || true
+mkdir -p "dist/RegulationManager_${ARCH_LABEL}/share/icons/hicolor/64x64/apps"
+cp resources/icons/icon_64.png "dist/RegulationManager_${ARCH_LABEL}/share/icons/hicolor/64x64/apps/regulation_manager.png" 2>/dev/null || true
+mkdir -p "dist/RegulationManager_${ARCH_LABEL}/share/icons/hicolor/48x48/apps"
+cp resources/icons/icon_48.png "dist/RegulationManager_${ARCH_LABEL}/share/icons/hicolor/48x48/apps/regulation_manager.png" 2>/dev/null || true
+mkdir -p "dist/RegulationManager_${ARCH_LABEL}/share/pixmaps"
+cp resources/icons/regulation_manager.png "dist/RegulationManager_${ARCH_LABEL}/share/pixmaps/" 2>/dev/null || true
 
 # Show size and create tar.gz archive (inside container to avoid Windows corruption)
 echo ""

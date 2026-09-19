@@ -34,10 +34,10 @@ uv run python main.py
 main.py                 → App entry, creates MainWindow
 config.py               → All paths, constants, DB config (supports PyInstaller)
 database/
-  __init__.py            → Engine/session factory
+  __init__.py            → Engine/session factory + FTS5 检测
   models.py             → 11 ORM tables（4 文档域 + 7 打分卡域）
   crud.py               → CRUD operations
-  migrations.py         → DB init + FTS5 setup + path/text migration + 打分卡内置数据灌入
+  migrations.py         → DB init + FTS5 setup（含降级保护）+ path/text migration + 打分卡内置数据灌入
 core/
   __init__.py
   document_service.py   → Document lifecycle (upload, search, delete, batch ops)
@@ -62,19 +62,21 @@ ui/
   styles.py             → QSS style constants
 utils/
   __init__.py
-  search_engine.py      → FTS5 index management + jieba tokenization
+  search_engine.py      → FTS5 index management + jieba tokenization（含 FTS5 可用性检测）
   backup_manager.py     → ZIP backup/restore
   text_parser.py        → Title/doc_no extraction from filenames
   text_extractor.py     → Text extraction from doc/docx/pdf (no Windows-only deps)
   text_utils.py         → Misc text helpers
 models/                 → Dataclass DTOs (DocumentData, CategoryData, SearchFilter, Scorecard* 等)
 resources/
+  icons/               → 应用图标（app_icon.ico + regulation_manager.png 多尺寸）
   styles/
     light.qss            → 浅色主题（唯一样式入口）
     dark.qss             → 深色主题（备用）
   rating/               → 打分卡内置初始数据（两份 JSON，首启灌库）
 tests/                  → 单元测试（document_service, scorecard_service, citation_link）
 tools/                  → 开发期一次性脚本（xls → 打分卡 JSON，不随应用分发）
+dist_files/             → 打包交付文件（README.txt, 使用说明.txt, 启动/安装/卸载脚本）
 ```
 
 ## Data Flow

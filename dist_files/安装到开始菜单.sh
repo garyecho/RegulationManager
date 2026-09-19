@@ -1,8 +1,6 @@
 #!/bin/bash
-# ==========================================
-#   制度汇编管理系统 — 安装到开始菜单
-#   使用: 双击运行此脚本，或执行 ./install.sh
-# ==========================================
+# 制度汇编管理系统 — 安装到开始菜单
+# 双击此文件，输入系统密码即可安装到开始菜单
 set -e
 
 APP_NAME="制度汇编管理系统"
@@ -36,16 +34,16 @@ if [ "$EUID" -ne 0 ]; then
     echo "需要管理员权限来安装。"
     INSTALL_USER="$(id -un)"
     if command -v pkexec &>/dev/null; then
-        exec pkexec /usr/bin/env REGULATION_INSTALL_USER="$INSTALL_USER" "$SCRIPT_DIR/install.sh"
+        exec pkexec /usr/bin/env REGULATION_INSTALL_USER="$INSTALL_USER" "$SCRIPT_DIR/安装到开始菜单.sh"
     elif command -v sudo &>/dev/null && [ -t 0 ]; then
-        exec sudo /usr/bin/env REGULATION_INSTALL_USER="$INSTALL_USER" "$SCRIPT_DIR/install.sh"
+        exec sudo /usr/bin/env REGULATION_INSTALL_USER="$INSTALL_USER" "$SCRIPT_DIR/安装到开始菜单.sh"
     else
-        show_error "系统未提供图形授权工具 pkexec。请在本文件夹空白处右键，选择“在终端中打开”，然后输入 ./install.sh 并按 Enter。"
+        show_error "系统未提供图形授权工具 pkexec。请在本文件夹空白处右键，选择"在终端中打开"，然后输入 ./安装到开始菜单.sh 并按 Enter。"
         exit 1
     fi
 fi
 
-# 在复制文件前确定实际使用者，避免留下 root 所有且不可用的半安装目录。
+# 在复制文件前确定实际使用者
 INSTALL_USER="${REGULATION_INSTALL_USER:-${SUDO_USER:-}}"
 if [ -z "$INSTALL_USER" ]; then
     SOURCE_OWNER="$(stat -c '%U' "$SCRIPT_DIR" 2>/dev/null || true)"
@@ -55,15 +53,15 @@ if [ -z "$INSTALL_USER" ]; then
 fi
 if [ -z "$INSTALL_USER" ] || ! id "$INSTALL_USER" &>/dev/null; then
     echo "错误：无法确定使用该程序的普通用户。"
-    echo "请指定用户后重新运行：REGULATION_INSTALL_USER=用户名 sudo -E ./install.sh"
+    echo "请指定用户后重新运行：REGULATION_INSTALL_USER=用户名 sudo -E ./安装到开始菜单.sh"
     exit 1
 fi
 
-echo "[1/3] 安装程序文件到 $INSTALL_DIR ..."
+echo "[1/4] 安装程序文件到 $INSTALL_DIR ..."
 mkdir -p "$INSTALL_DIR"
 cp -af "$SCRIPT_DIR"/* "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/start.sh"
 chmod +x "$INSTALL_DIR/RegulationManager"
+chmod +x "$INSTALL_DIR/start.sh"
 
 # /opt 下的程序文件归 root 管理，但运行数据必须允许安装用户读写。
 mkdir -p "$INSTALL_DIR/data"
@@ -83,6 +81,7 @@ if [ -f "$SCRIPT_DIR/share/pixmaps/regulation_manager.png" ]; then
 fi
 
 echo "[3/4] 创建开始菜单快捷方式 ..."
+# 用绝对路径创建 .desktop，不依赖任何占位符或相对路径
 cat > "$DESKTOP_FILE" << EOF
 [Desktop Entry]
 Version=1.0
@@ -90,8 +89,7 @@ Type=Application
 Name=$APP_NAME
 Name[zh_CN]=$APP_NAME
 Comment=单机版制度文件集中管理系统
-Exec="$INSTALL_DIR/start.sh"
-Path=$INSTALL_DIR
+Exec=$INSTALL_DIR/start.sh
 Icon=regulation_manager
 Terminal=false
 Categories=Office;

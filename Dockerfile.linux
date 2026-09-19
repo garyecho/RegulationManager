@@ -41,7 +41,7 @@ RUN for mirror in \
         "https://mirrors.cloud.tencent.com/pypi/simple"; do \
         echo "Trying pip mirror: $mirror"; \
         if pip3 install --no-cache-dir --timeout 60 -i "$mirror" \
-             SQLAlchemy PyMuPDF python-docx jieba pyinstaller; then \
+             SQLAlchemy PyMuPDF python-docx jieba pysqlite3-binary pyinstaller; then \
             break; \
         fi; \
     done

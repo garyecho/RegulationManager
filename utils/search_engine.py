@@ -6,7 +6,7 @@ FTS5 搜索引擎 + jieba 中文分词
 """
 import logging
 from sqlalchemy import text
-from database import get_session
+from database import get_session, FTS5_AVAILABLE
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +33,8 @@ def index_document(doc_id: int, title: str, doc_no: str = "",
                    department: str = "", issuing_org: str = "",
                    description: str = "", content_text: str = ""):
     """将单个文档写入 FTS5 索引（分词后）"""
+    if not FTS5_AVAILABLE:
+        return
     with get_session() as session:
         index_document_in_session(
             session, doc_id, title, doc_no, department, issuing_org,
@@ -45,6 +47,8 @@ def index_document_in_session(session, doc_id: int, title: str,
                               issuing_org: str = "", description: str = "",
                               content_text: str = ""):
     """在调用方事务中更新单个文档的 FTS5 索引。"""
+    if not FTS5_AVAILABLE:
+        return
     import config
     exists = session.execute(text(
         "SELECT COUNT(*) FROM documents_fts WHERE rowid = :id"
@@ -71,12 +75,16 @@ def index_document_in_session(session, doc_id: int, title: str,
 
 def remove_from_index(doc_id: int):
     """从 FTS5 索引中移除文档"""
+    if not FTS5_AVAILABLE:
+        return
     with get_session() as session:
         remove_from_index_in_session(session, doc_id)
 
 
 def remove_from_index_in_session(session, doc_id: int):
     """在调用方事务中移除单个文档的 FTS5 索引。"""
+    if not FTS5_AVAILABLE:
+        return
     exists = session.execute(text(
         "SELECT COUNT(*) FROM documents_fts WHERE rowid = :id"
     ), {"id": doc_id}).scalar() or 0
@@ -147,6 +155,8 @@ def extract_snippet(content_text: str, keyword: str, max_len: int = 150) -> str:
 
 def search_fts(keyword: str, page: int = 1, page_size: int = 20) -> tuple:
     """FTS5 全文搜索（自动分词）"""
+    if not FTS5_AVAILABLE:
+        return [], 0, 1
     # 对搜索关键词分词
     tokens = tokenize(keyword)
     # 过滤并清理分词结果，移除 FTS5 查询语法字符
@@ -189,10 +199,13 @@ def search_fts(keyword: str, page: int = 1, page_size: int = 20) -> tuple:
 
 def rebuild_index(progress_callback=None):
     """重建 FTS5 索引（从 documents 表重新填充，带分词）
-    
+
     Args:
         progress_callback: 进度回调函数 callback(current, total, message)
     """
+    if not FTS5_AVAILABLE:
+        logger.info("FTS5 不可用，跳过索引重建")
+        return
     import config
     with get_session() as session:
         # 清空旧索引

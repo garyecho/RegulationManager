@@ -4,7 +4,7 @@
 以及日常提交 / 推送代码的标准流程。
 
 - 技术栈：PyQt5 + SQLAlchemy + SQLite
-- 依赖（见 `pyproject.toml` / `uv.lock`）：PyQt5、SQLAlchemy、PyMuPDF、python-docx、jieba
+- 依赖（见 `pyproject.toml` / `uv.lock`）：PyQt5、SQLAlchemy、PyMuPDF、python-docx、jieba、pysqlite3-binary（Linux/macOS）
 
 ## 如何启动（速查）
 
@@ -14,6 +14,8 @@
 | Windows（公司，环境已配好） | 无需（依赖在 `venv38` 内） | `venv38\Scripts\python.exe main.py` |
 
 首次启动会自动完成：创建 `data/`（`documents/`、`backups/`、`logs/`）→ 建库 `data/regulation.db`（11 张 ORM 表：4 文档域 + 7 打分卡域）→ 重建 FTS5 全文索引（jieba 分词）→ 灌入打分卡内置数据（幂等），全程无需手工初始化。
+
+> **FTS5 兼容性**：程序启动时自动检测 SQLite 是否支持 FTS5。若系统 SQLite 不含 FTS5（如银河麒麟 v10 SP1），会自动使用 `pysqlite3-binary` 提供的带 FTS5 的新版 SQLite。若 `pysqlite3-binary` 也不可用，自动降级为 LIKE 模糊搜索，不影响其他功能。
 
 ## 双远程仓库
 
@@ -136,8 +138,8 @@ git pull github master         # 家里机器上：拉取公司同步的改动
 | 现象 | 处理 |
 |---|---|
 | 家里 `git push` / `git pull` 超时 | 默认 upstream 是 `gitlab`（内网），家里必须显式写 `github`：`git push github master` / `git pull github master`；或连公司 VPN 后直接推 gitlab |
-| 启动报 `Could not find the Qt platform plugin "xcb" in ""` | `main.py` 已内置修复：启动时把 PyQt5 wheel 自带的插件目录加入 Qt 搜索路径（uv 托管 Python 下默认搜不到）。若换新机器仍报错，多半缺 Qt 运行库：`sudo apt install libxcb-cursor0 libxcb-xinerama0 libxkbcommon-x11-0 libegl1` 后重试 |
-| Wayland 会话下启动直接段错误（退出码 139，无报错信息） | Qt5 在 Wayland 下默认走 xcb/XWayland，部分机器会崩。`main.py` 已自动处理：检测到 `XDG_SESSION_TYPE=wayland` 且未手动指定平台时，自动切 `QT_QPA_PLATFORM=wayland`。仍异常可手动：`QT_QPA_PLATFORM=wayland uv run python main.py` |
+| 启动报 `Could not find the Qt platform plugin "xcb" in ""` | `main.py` 已内置修复：打包模式下自动检测 PyQt5 插件路径（`Qt/plugins` 或 `Qt5/plugins`）并设置 `QT_PLUGIN_PATH`。开发模式下把 PyQt5 wheel 自带的插件目录加入 Qt 搜索路径。若换新机器仍报错，多半缺 Qt 运行库：`sudo apt install libxcb-cursor0 libxcb-xinerama0 libxkbcommon-x11-0 libegl1` 后重试 |
+| Wayland 会话下启动直接段错误（退出码 139，无报错信息） | Qt5 在 Wayland 下默认走 xcb/XWayland，部分机器会崩。`main.py` 已自动处理：检测到 `XDG_SESSION_TYPE=wayland` 时，打包模式自动切 `QT_QPA_PLATFORM=xcb`，开发模式切 `QT_QPA_PLATFORM=wayland`。`start.sh` 同步处理此逻辑 |
 | `uv sync` 报 hatchling `Unable to determine which files to ship` | 旧问题：项目被当包构建失败。`pyproject.toml` 已设 `[tool.uv] package = false`（本项目是平铺应用，不装成包）。若报错说明拉到了旧配置，先 `git pull` 再删 `.venv` 重跑 `uv sync` |
 | 界面中文显示方块 | 安装中文字体：`sudo apt install fonts-noto-cjk` |
 | `.doc` 文档提取不到正文 | 确认安装了 `antiword`；部分老 .doc 只能靠正则回退，效果打折属正常 |
@@ -155,3 +157,24 @@ git pull github master         # 家里机器上：拉取公司同步的改动
 | Linux（容器化） | `Dockerfile.linux` + `build_docker.*` | 基于 Ubuntu 20.04，兼容麒麟 v10 |
 
 > PyInstaller 不能交叉编译：Windows 版只能在 Windows 打，Linux 版只能在 Linux 打。
+
+### Ubuntu 上构建麒麟版（Docker）
+
+```bash
+# 1. 安装 Docker（首次）
+sudo apt install docker.io
+sudo usermod -aG docker $USER
+newgrp docker
+
+# 2. 构建 Docker 镜像（Dockerfile 改了才需要重新跑）
+sudo docker build -t regulation-manager-builder -f Dockerfile.linux .
+
+# 3. 在容器内打包
+sudo docker run --rm -v "$(pwd)":/build regulation-manager-builder bash /build/build_docker.sh x86_64
+
+# 4. 产物
+#    dist/RegulationManager_Kylin_x64/     — 解压即用目录
+#    dist/RegulationManager_Kylin_x64.tar.gz — 分发压缩包
+```
+
+> ⚠️ 打包产物在 Ubuntu 上可能无法直接运行（Qt 插件兼容性），但打出来的 `tar.gz` 发给麒麟用户可正常使用。

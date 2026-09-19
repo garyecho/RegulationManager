@@ -1,6 +1,17 @@
 """
 制度汇编管理系统 — 入口文件
 """
+# --- FTS5 兼容性：优先使用 pysqlite3-binary 自带的新版 SQLite（含 FTS5） ---
+# 银河麒麟 v10 SP1 等系统的自带 Python/SQLite 较旧，未编译 FTS5 扩展。
+# pysqlite3-binary 打包了最新 SQLite 的预编译二进制，开箱即用。
+try:
+    __import__('pysqlite3')
+    import sys as _sys
+    _sys.modules['sqlite3'] = _sys.modules.pop('pysqlite3')
+except ImportError:
+    pass
+# --- END FTS5 兼容性 ---
+
 import sys
 import logging
 from pathlib import Path
@@ -40,8 +51,12 @@ def main():
 
     # Wayland 会话下 Qt5 默认选 xcb（XWayland），部分机器会段错误(退出码139)；
     # 未手动指定平台时切到 wayland 后端（X11 / 无该环境变量时不受影响）。
+    # 打包模式下强制 xcb（打包的 Qt5 不含 wayland 插件）。
     if os.environ.get("XDG_SESSION_TYPE") == "wayland":
-        os.environ.setdefault("QT_QPA_PLATFORM", "wayland")
+        if getattr(sys, 'frozen', False):
+            os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
+        else:
+            os.environ.setdefault("QT_QPA_PLATFORM", "wayland")
 
     # 初始化数据库
     from database.migrations import init_database
@@ -55,10 +70,17 @@ def main():
     except AttributeError:
         pass  # Qt 5.14+ 默认启用
 
-    # 定位 Qt 平台插件：开发模式下手动加入 PyQt5 wheel 的插件目录；
-    # 打包模式由 pyi_rth_qt5.py 在启动时通过 QT_PLUGIN_PATH 环境变量处理，
-    # 此处仅在非打包模式下生效。
-    if not getattr(sys, 'frozen', False):
+    # 定位 Qt 平台插件
+    # 开发模式：手动加入 PyQt5 wheel 的插件目录
+    # 打包模式：在 QApplication 创建之前显式设置 QT_QPA_PLATFORM_PLUGIN_PATH
+    if getattr(sys, 'frozen', False):
+        _internal = Path(sys.executable).parent / "_internal"
+        for subdir in ('PyQt5/Qt5', 'PyQt5/Qt'):
+            _platforms = _internal / subdir / 'plugins' / 'platforms'
+            if _platforms.is_dir():
+                os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = str(_platforms)
+                break
+    else:
         import PyQt5
         _plugins_dir = Path(PyQt5.__file__).resolve().parent / "Qt5" / "plugins"
         if _plugins_dir.exists():
@@ -69,6 +91,23 @@ def main():
     app.setApplicationName(config.APP_NAME)
     app.setApplicationVersion(config.APP_VERSION)
     app.setOrganizationName("RegulationManager")
+
+    # 设置应用图标（任务栏/窗口标题栏/桌面图标）
+    from PyQt5.QtGui import QIcon
+    _icon_dir = APP_DIR / "resources" / "icons"
+    if getattr(sys, 'frozen', False):
+        _internal = Path(sys.executable).parent / "_internal"
+        _icon_path = _internal / "resources" / "icons" / "app_icon.ico"
+        if not _icon_path.exists():
+            _icon_path = _internal / "resources" / "icons" / "regulation_manager.png"
+        if not _icon_path.exists():
+            _icon_path = Path(sys.executable).parent / "resources" / "icons" / "app_icon.ico"
+        if not _icon_path.exists():
+            _icon_path = _icon_dir / "regulation_manager.png"
+    else:
+        _icon_path = _icon_dir / "regulation_manager.png"
+    if _icon_path.exists():
+        app.setWindowIcon(QIcon(str(_icon_path)))
 
     # 设置全局中文字体（按优先级检测可用字体）
     available = QFontDatabase().families()

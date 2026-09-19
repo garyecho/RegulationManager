@@ -1,6 +1,6 @@
 #!/bin/bash
-# 制度汇编管理系统 — 图形界面启动脚本
-# 由 Launch_RegulationManager.desktop 和开始菜单快捷方式调用。
+# 制度汇编管理系统 — 启动脚本
+# 双击此文件即可启动程序
 
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_EXE="$APP_DIR/RegulationManager"
@@ -10,6 +10,14 @@ show_error() {
         zenity --error --title="制度汇编管理系统" --text="$1"
     else
         echo "错误：$1" >&2
+    fi
+}
+
+show_info() {
+    if command -v zenity &>/dev/null && [ -n "${DISPLAY:-}" ]; then
+        zenity --info --title="制度汇编管理系统" --text="$1" --timeout=12
+    else
+        echo "$1"
     fi
 }
 
@@ -23,12 +31,10 @@ chmod +x "$APP_EXE" || {
     exit 1
 }
 
-# 设置 Qt 环境变量
+# 启用中文输入法
 export QT_IM_MODULE="${QT_IM_MODULE:-fcitx}"
-export QT_QPA_PLATFORM_PLUGIN_PATH="$APP_DIR/_internal/PyQt5/Qt/plugins/platforms"
-export LD_LIBRARY_PATH="$APP_DIR/_internal:${LD_LIBRARY_PATH:-}"
 
-# Wayland 会话下自动切换到 xcb（打包的 Qt 不含 wayland 插件）
+# Wayland 会话下切换到 xcb（打包的 Qt 不含 wayland 插件）
 if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
     export QT_QPA_PLATFORM=xcb
 fi

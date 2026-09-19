@@ -18,6 +18,12 @@ hidden_imports += collect_submodules('fitz')
 hidden_imports += collect_submodules('docx')
 hidden_imports += collect_submodules('sqlalchemy')
 
+# pysqlite3-binary：自带 FTS5 的 SQLite（麒麟系统兼容）
+try:
+    hidden_imports += collect_submodules('pysqlite3')
+except Exception:
+    pass
+
 hidden_imports += [
     'PyQt5.sip',
     'PyQt5.QtWidgets',
@@ -25,6 +31,7 @@ hidden_imports += [
     'PyQt5.QtCore',
     'PyQt5.Qt',
     'sqlite3',
+    'pysqlite3',
     'encodings',
     'codecs',
 ]
@@ -39,9 +46,15 @@ datas += collect_data_files('PyQt5', include_py_files=False)
 if os.path.exists('resources'):
     datas.append(('resources', 'resources'))
 
-# ── Binaries（Qt 动态库）──
+# ── Binaries（Qt 动态库 + pysqlite3 FTS5 SQLite）──
 binaries = []
 binaries += collect_dynamic_libs('PyQt5')
+
+# 收集 pysqlite3-binary 自带的 libsqlite3.so（含 FTS5）
+try:
+    binaries += collect_dynamic_libs('pysqlite3')
+except Exception:
+    pass
 
 a = Analysis(
     ['main.py'],
@@ -89,7 +102,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,
+    icon='resources/icons/app_icon.ico',
 )
 
 coll = COLLECT(

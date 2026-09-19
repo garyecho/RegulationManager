@@ -1,4 +1,4 @@
-# 制度汇编管理系统 v1.3.0
+# 制度汇编管理系统 v1.3.1
 
 单机版制度文件集中管理工具，面向金融/企业合规部门，支持分类管理、全文搜索（含正文检索）、批量导入、回收站、央行评级打分卡等功能。支持 Windows 和银河麒麟操作系统。
 
@@ -8,7 +8,7 @@
 |------|------|
 | 制度管理 | 新增、编辑、删除（软删除+回收站）、彻底删除 |
 | 分类目录 | 树形分类结构，右键删除，底部添加 |
-| 全文搜索 | FTS5 + jieba 中文分词，支持标题/文号/正文内容搜索 |
+| 全文搜索 | FTS5 + jieba 中文分词，支持标题/文号/正文内容搜索（无 FTS5 时自动降级为 LIKE） |
 | 搜索高亮 | 搜索结果中关键词黄色背景高亮，显示正文摘要片段 |
 | 正文提取 | 上传时自动提取 PDF/DOCX/DOC 正文，存入数据库供全文搜索 |
 | 文号识别 | 自动从文件名提取文号（支持 `——`、`-`、`—` 分隔符） |
@@ -41,7 +41,7 @@ RegulationManager/
 ├── database/                      # 数据层
 │   ├── models.py                  # SQLAlchemy ORM 模型（11 表：Document/Category/Tag/Scorecard*）
 │   ├── crud.py                    # CRUD 操作（DocumentCRUD/CategoryCRUD/TagCRUD）
-│   └── migrations.py              # 数据库初始化 + FTS5 索引 + 路径迁移 + 正文补提 + 打分卡灌库
+│   ├── migrations.py              # 数据库初始化 + FTS5 索引（含降级保护）+ 路径迁移 + 正文补提 + 打分卡灌库
 │
 ├── core/                          # 业务逻辑层
 │   ├── document_service.py        # 制度生命周期（上传/编辑/删除/搜索/备份）
@@ -73,6 +73,9 @@ RegulationManager/
 │       └── toast.py               # Toast 提示组件
 │
 ├── resources/
+│   ├── icons/
+│   │   ├── app_icon.ico           # Windows 图标（多尺寸）
+│   │   └── regulation_manager.png # Linux 图标（256x256）
 │   ├── styles/
 │   │   ├── light.qss              # 浅色主题（唯一样式入口）
 │   │   └── dark.qss               # 深色主题（备用）
@@ -225,8 +228,10 @@ dist/
 │   └── ...
 └── RegulationManager_Kylin_x64/    # 银河麒麟 x86_64
     ├── RegulationManager          # Linux 可执行文件
-    ├── Launch_RegulationManager.desktop   # 双击直接启动
-    ├── Install_RegulationManager.desktop  # 图形化安装到开始菜单
+    ├── 启动制度管理系统.sh         # 双击即可启动（推荐）
+    ├── 安装到开始菜单.sh           # 安装到系统菜单（可选）
+    ├── 卸载程序.sh               # 从系统中卸载（可选）
+    ├── 使用说明.txt              # 详细使用指南
     ├── start.sh                   # 启动脚本（终端兜底）
     ├── install.sh                 # 安装脚本（终端兜底）
     ├── _internal/
@@ -236,8 +241,12 @@ dist/
 ### 麒麟系统构建
 
 ```bash
-# 方式一：Docker 容器构建（在 Windows 上即可完成）
-build_docker.bat          # 自动构建并打包为 tar.gz
+# 方式一：Docker 容器构建（Windows 或 Ubuntu 均可）
+# Windows:
+build_docker.bat
+# Ubuntu:
+sudo docker build -t regulation-manager-builder -f Dockerfile.linux .
+sudo docker run --rm -v "$(pwd)":/build regulation-manager-builder bash /build/build_docker.sh x86_64
 
 # 方式二：在麒麟机器上直接构建
 chmod +x build_linux.sh && ./build_linux.sh
@@ -251,21 +260,59 @@ chmod +x build_linux.sh && ./build_linux.sh
 
 ### 麒麟零基础用户使用
 
-推荐分发容器内生成的 `.tar.gz` 压缩包，避免 Windows 压缩软件丢失 Linux 执行权限。用户解压后：
+推荐分发容器内生成的 `.tar.gz` 压缩包，避免 Windows 压缩软件丢失 Linux 执行权限。
 
-1. 双击 `Launch_RegulationManager.desktop` 直接试用；首次出现“允许启动”或“信任并启动”时选择允许。
-2. 需要长期使用时，双击 `Install_RegulationManager.desktop`；银河麒麟会通过 `pkexec` 弹出图形化密码框，认证后自动安装到 `/opt/RegulationManager` 并创建开始菜单入口。
-3. 安装脚本会将 `data/` 目录交给实际登录用户，确保普通用户可以写入数据库、日志、备份和导入文件。
-4. 若系统策略禁止执行桌面启动器，用户可在文件夹空白处右键选择“在终端中打开”，执行 `./start.sh` 或 `./install.sh`。Linux 输入密码时不显示字符或星号属于正常现象。
+#### 首次使用（最简单方式）
 
-两个启动器的数据位置不同，不能混用：
+1. 解压压缩包到任意目录
+2. 打开解压后的文件夹，在空白处**右键 → 在终端中打开**
+3. 输入以下命令，按 Enter：
+
+```bash
+chmod +x 启动制度管理系统.sh && ./启动制度管理系统.sh
+```
+
+4. 程序窗口出现后即可正常使用
+5. 详细说明请查看文件夹中的「使用说明.txt」
+
+> **为什么不能直接双击 .sh 文件？** 银河麒麟系统（和大多数 Linux 桌面）默认将 `.sh` 文件关联为文本编辑器，这是 Linux 的安全机制。使用终端方式启动是最简单可靠的。
+
+#### 安装到开始菜单（推荐长期使用）
+
+1. 右键「安装到开始菜单.sh」→ 以程序运行（或在终端中执行 `./安装到开始菜单.sh`）
+2. 输入系统密码
+3. 安装完成后，从开始菜单搜索"制度汇编管理系统"即可启动
+4. 以后从开始菜单启动无需密码
+
+#### 卸载程序
+
+右键「卸载程序.sh」→ 以程序运行（或在终端中执行 `./卸载程序.sh`），输入密码确认即可。
+
+#### 两种启动方式的区别
 
 | 启动方式 | 适用场景 | 程序与数据位置 | 是否需要密码 |
 |------|------|------|------|
-| `Launch_RegulationManager.desktop` | 临时试用 | 当前解压目录及其 `data/` | 否 |
-| `Install_RegulationManager.desktop` | 长期使用 | `/opt/RegulationManager/` 及其 `data/` | 首次安装需要 |
+| 终端执行 `启动制度管理系统.sh` | 临时试用/日常使用 | 当前解压目录及其 `data/` | 否 |
+| 开始菜单（安装后） | 长期固定使用 | `/opt/RegulationManager/` 及其 `data/` | 首次安装需要 |
 
-安装时会复制当前解压目录的全部数据到 `/opt/RegulationManager/data/`。安装后应统一从开始菜单启动；如果又双击原解压目录中的启动器，会打开另一套旧数据，并非数据丢失。
+安装时会复制当前解压目录的全部数据到 `/opt/RegulationManager/data/`。安装后应统一从开始菜单启动；如果又执行原解压目录中的启动脚本，会打开另一套旧数据，并非数据丢失。
+
+#### 常见问题
+
+**Q: 双击 .sh 文件没有反应或打开了文本编辑器？**
+这是银河麒麟的正常行为。请使用终端方式启动：右键文件夹 → 在终端中打开 → 输入 `chmod +x 启动制度管理系统.sh && ./启动制度管理系统.sh`。或右键文件 → 属性 → 权限 → 勾选"允许作为程序执行"。
+
+**Q: 系统提示文件不可信任？**
+选择"信任并执行"或"允许启动"。如果系统没有此选项，请使用终端方式启动。
+
+**Q: 中文输入法无法使用？**
+确保系统已安装 fcitx 输入法框架。如仍无法使用，在终端执行：
+```bash
+sudo apt install fcitx-frontend-qt5 -y
+```
+
+**Q: 如何卸载程序？**
+运行「卸载程序.sh」（终端执行 `./卸载程序.sh`），输入密码确认即可。程序数据也会一并删除，请提前备份 `data/` 目录。
 
 ## 使用说明
 
@@ -327,7 +374,7 @@ git push all master
 |------|------|
 | GUI | PyQt5 5.15（兼容 Win7~Win11 / 麒麟 v10~v11） |
 | 数据库 | SQLite + SQLAlchemy（11 张 ORM 表：4 文档域 + 7 打分卡域 + FTS5 虚拟表） |
-| 全文搜索 | SQLite FTS5 + jieba 中文分词 |
+| 全文搜索 | SQLite FTS5 + jieba 中文分词（无 FTS5 时自动降级 LIKE，pysqlite3-binary 提供跨平台 FTS5） |
 | 正文提取 | PyMuPDF (PDF)、python-docx (DOCX)、antiword (DOC，可选) |
 | 打包 | PyInstaller 6.x (onedir) / Docker 容器构建 |
 | 主题 | 浅色主题 QSS（集中管理） |
@@ -347,17 +394,16 @@ git push all master
 **Q: 数据库损坏？**
 用 `data/backups/` 中的备份替换 `data/regulation.db`。或删除数据库重启（数据丢失）。
 
-**Q: 改了 QSS 不生效？**
-检查对应控件是否有 `widget.setStyleSheet()` 内联样式覆盖了 QSS。用 `setObjectName()` 替代。
-
 **Q: pip 安装报 SSL/proxy 错误？**
 用国内镜像：`pip install ... -i http://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn`
 
 **Q: 麒麟系统安装后数据“丢失”了？**
 直接启动器使用解压目录下的 `data/`，开始菜单程序使用 `/opt/RegulationManager/data/`，两者不会自动同步。安装后请统一从开始菜单启动。
 
-**Q: 麒麟系统双击启动器没有反应或打开了文本编辑器？**
-右键 `Launch_RegulationManager.desktop`，选择“允许启动”或“属性 → 权限 → 允许作为程序执行”。仍无法启动时，在当前文件夹右键选择“在终端中打开”，执行：`chmod +x start.sh && ./start.sh`
+**Q: 麒麟系统双击 .sh 文件没有反应或打开了文本编辑器？**
+这是银河麒麟的正常行为。请使用以下方式：
+- 方式一（推荐）：在文件夹空白处右键 → "在终端中打开"，输入 `chmod +x 启动制度管理系统.sh && ./启动制度管理系统.sh`
+- 方式二：右键文件 → 属性 → 权限 → 勾选"允许作为程序执行"，然后双击运行
 
 **Q: 麒麟系统无法使用中文输入法？**
 确保系统已安装 fcitx 输入法框架，执行：`sudo apt install fcitx-frontend-qt5 -y`
@@ -365,10 +411,21 @@ git push all master
 **Q: `git add` 时出现 `LF will be replaced by CRLF` 警告？**
 Windows 默认配置 `core.autocrlf = true`，Git 会在暂存时将 LF 转换为 CRLF。此警告无害，不影响功能。若想消除，可在仓库根目录创建 `.gitattributes` 文件指定换行符规则（如 `*.py text eol=lf`）。
 
-**Q: `git add` 时出现 `LF will be replaced by CRLF` 警告？**
-这是 Windows 默认 `core.autocrlf = true` 导致的，Git 会将 LF 换行符转为 CRLF。此警告无害，不影响功能。若想消除，可在仓库根目录创建 `.gitattributes` 文件，指定换行符规则（如 `*.py text eol=lf`）。
-
 ## 版本历史
+
+### v1.3.1 (2026-09)
+
+- **新增**: FTS5 兼容性：启动时自动检测 SQLite FTS5 支持，无 FTS5 时自动降级为 LIKE 模糊搜索
+- **新增**: pysqlite3-binary 集成：打包时自带含 FTS5 的新版 SQLite，麒麟系统无需额外安装
+- **新增**: 应用图标：Windows exe 图标 + Linux 窗口/开始菜单图标
+- **新增**: 简化启动方式：中文 `.sh` 脚本（`启动制度管理系统.sh`）替代 `.desktop` 文件，终端执行即可启动
+- **新增**: 卸载功能：运行「卸载程序.sh」即可从系统中移除程序及开始菜单快捷方式
+- **新增**: `使用说明.txt`：详细的首次使用指南，解决 `.sh` 文件双击用文本编辑器打开的问题
+- **修复**: Qt 插件路径检测：打包模式下自动定位 PyQt5 插件（兼容 `Qt/` 和 `Qt5/` 目录名）
+- **修复**: Wayland 会话兼容：打包模式自动切换 xcb 后端
+- **修复**: Docker 构建 `data/` 目录权限问题
+- **优化**: Dockerfile 加入 pysqlite3-binary 依赖
+- **优化**: start.sh 自动检测 Wayland 环境
 
 ### v1.3.0 (2026-09)
 

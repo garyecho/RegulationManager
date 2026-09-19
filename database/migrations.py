@@ -57,7 +57,19 @@ def _migrate_scorecard_is_auto():
 
 def _setup_fts5():
     """设置 FTS5 全文搜索索引"""
+    from database import FTS5_AVAILABLE
     from database import get_session
+
+    if not FTS5_AVAILABLE:
+        logger.info("FTS5 不可用，跳过全文搜索索引设置（将使用 LIKE 模糊搜索）")
+        # 仍然执行迁移和补提操作
+        _migrate_paths()
+        _extract_missing_text()
+        _cleanup_obsolete_categories()
+        seed_rating_scorecards()
+        logger.info("数据库初始化完成（无 FTS5）")
+        return
+
     with get_session() as session:
         # 清理旧的 FTS 表和触发器
         for trig in ["documents_ai", "documents_ad", "documents_au", "documents_au_del"]:
