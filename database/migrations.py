@@ -9,6 +9,9 @@ from database.models import Base
 
 logger = logging.getLogger(__name__)
 
+# FTS5 独立表的结构版本；索引字段/分词策略变更时递增，触发一次全量重建
+_FTS_SCHEMA_VERSION = "1"
+
 
 def init_database():
     """创建表结构 + FTS5 虚拟表"""
@@ -55,8 +58,34 @@ def _migrate_scorecard_is_auto():
             logger.info("已为 scorecard_checks 补充 ignored_auto_ids 列")
 
 
+def _fts_schema_ready(session) -> bool:
+    """documents_fts 是否已是当前结构版本且存在"""
+    row = session.execute(text(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='documents_fts'"
+    )).fetchone()
+    if not row:
+        return False
+    session.execute(text(
+        "CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+    ))
+    ver = session.execute(text(
+        "SELECT value FROM app_meta WHERE key='fts_schema_version'"
+    )).scalar()
+    return ver == _FTS_SCHEMA_VERSION
+
+
+def _mark_fts_schema(session):
+    session.execute(text(
+        "CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+    ))
+    session.execute(text(
+        "INSERT INTO app_meta(key, value) VALUES ('fts_schema_version', :v) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value"
+    ), {"v": _FTS_SCHEMA_VERSION})
+
+
 def _setup_fts5():
-    """设置 FTS5 全文搜索索引"""
+    """设置 FTS5 全文搜索索引（结构未变时跳过 DROP+全量重建）"""
     from database import FTS5_AVAILABLE
     from database import get_session
 
@@ -70,24 +99,30 @@ def _setup_fts5():
         logger.info("数据库初始化完成（无 FTS5）")
         return
 
+    need_rebuild = False
     with get_session() as session:
-        # 清理旧的 FTS 表和触发器
-        for trig in ["documents_ai", "documents_ad", "documents_au", "documents_au_del"]:
-            session.execute(text(f"DROP TRIGGER IF EXISTS {trig}"))
-        for tbl in ["documents_fts", "documents_fts_data", "documents_fts_idx",
-                     "documents_fts_docsize", "documents_fts_config"]:
-            session.execute(text(f"DROP TABLE IF EXISTS {tbl}"))
-        for tbl in ["fts_documents", "fts_documents_data", "fts_documents_idx",
-                     "fts_documents_docsize", "fts_documents_config"]:
-            session.execute(text(f"DROP TABLE IF EXISTS {tbl}"))
+        need_rebuild = not _fts_schema_ready(session)
 
-        # 创建独立的 FTS5 虚拟表（不用 content 同步，因为需要 jieba 预分词）
-        session.execute(text("""
-            CREATE VIRTUAL TABLE documents_fts
-            USING fts5(title, doc_no, department, issuing_org, description, content_text)
-        """))
+        if need_rebuild:
+            # 清理旧的 FTS 表和触发器
+            for trig in ["documents_ai", "documents_ad", "documents_au", "documents_au_del"]:
+                session.execute(text(f"DROP TRIGGER IF EXISTS {trig}"))
+            for tbl in ["documents_fts", "documents_fts_data", "documents_fts_idx",
+                         "documents_fts_docsize", "documents_fts_config"]:
+                session.execute(text(f"DROP TABLE IF EXISTS {tbl}"))
+            for tbl in ["fts_documents", "fts_documents_data", "fts_documents_idx",
+                         "fts_documents_docsize", "fts_documents_config"]:
+                session.execute(text(f"DROP TABLE IF EXISTS {tbl}"))
 
-        logger.info("FTS5 虚拟表创建完成（独立模式，需手动分词填充）")
+            # 创建独立的 FTS5 虚拟表（不用 content 同步，因为需要 jieba 预分词）
+            session.execute(text("""
+                CREATE VIRTUAL TABLE documents_fts
+                USING fts5(title, doc_no, department, issuing_org, description, content_text)
+            """))
+            _mark_fts_schema(session)
+            logger.info("FTS5 虚拟表创建完成（独立模式，需手动分词填充）")
+        else:
+            logger.info("FTS5 结构版本未变，跳过全量重建")
 
     # 迁移和补提操作在单独的 session 中进行
     _migrate_paths()
@@ -95,9 +130,10 @@ def _setup_fts5():
     _cleanup_obsolete_categories()
     seed_rating_scorecards()
 
-    # 启动时自动重建 FTS5 索引（每次 DROP + CREATE 后都需要）
-    from utils.search_engine import rebuild_index
-    rebuild_index()
+    # 仅在 FTS 表刚重建时全量填充索引
+    if need_rebuild:
+        from utils.search_engine import rebuild_index
+        rebuild_index()
 
     logger.info("数据库初始化完成")
 

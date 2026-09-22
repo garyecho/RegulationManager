@@ -378,14 +378,18 @@ def match_document(
     return None
 
 
-def _resolve_citation(title: Optional[str], no: Optional[str]) -> Optional[int]:
-    """引用 → 文档 id（未匹配返回 None）"""
+def _resolve_citation(title: Optional[str], no: Optional[str], docs: Optional[List[Document]] = None) -> Optional[int]:
+    """引用 → 文档 id（未匹配返回 None）
+
+    传入 docs 可复用同一查询结果，避免 render_linked_html 逐引用全表加载。
+    """
     if not (title or no):
         return None
-    with get_session() as session:
-        docs = session.query(Document).filter(Document.is_deleted == False).all()
-        doc = match_document(title, no, docs)
-        return doc.id if doc else None
+    if docs is None:
+        with get_session() as session:
+            docs = session.query(Document).filter(Document.is_deleted == False).all()
+    doc = match_document(title, no, docs)
+    return doc.id if doc else None
 
 
 def render_linked_html(text: str, dark_theme: bool = False) -> str:
@@ -395,15 +399,29 @@ def render_linked_html(text: str, dark_theme: bool = False) -> str:
         text: 原始文本
         dark_theme: 是否为深色主题，控制内联颜色
     """
+    escaped = html.escape(text or "")
+    matches = list(_CITATION_RE.finditer(escaped))
+    if not matches:
+        return escaped
+
+    # 一次加载文档清单，逐引用匹配（消除 N+1）
+    with get_session() as session:
+        docs = session.query(Document).filter(Document.is_deleted == False).all()
+        id_by_span = {
+            m.start(): _resolve_citation(
+                m.group("title"), m.group("no1") or m.group("no2"), docs
+            )
+            for m in matches
+        }
+
     def _repl(m):
-        title, no = m.group("title"), m.group("no1") or m.group("no2")
-        doc_id = _resolve_citation(title, no)
+        doc_id = id_by_span.get(m.start())
         label = html.escape(m.group(0))
         if doc_id:
             return f'<a href="doc://{doc_id}">{label}</a>'
         return f'<a class="missing-link" href="missing://{quote(m.group(0))}">{label}</a>'
 
-    return _CITATION_RE.sub(_repl, html.escape(text or ""))
+    return _CITATION_RE.sub(_repl, escaped)
 
 
 def sync_auto_links(check_id: int) -> int:

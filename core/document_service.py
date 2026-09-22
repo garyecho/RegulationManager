@@ -149,27 +149,42 @@ def upload_document(file_path: str, title: str, doc_no: str = "",
                     issuing_org: str = "", effective_date: str = "",
                     description: str = "", tags: list = None,
                     status: str = None) -> Optional[DocumentData]:
+    logger.info("开始上传文档：%s", title)
+    
     if not file_path or not os.path.exists(file_path):
+        logger.warning("上传失败：文件路径无效或文件不存在 - %s", file_path)
         return None
 
     ext = os.path.splitext(file_path)[1].lower()
     if ext not in config.ALLOWED_EXTENSIONS:
+        logger.warning("上传失败：不支持的文件类型 %s - %s", ext, file_path)
         return None
 
-    h = file_hash(file_path)
-    dest_name = f"{h[:12]}_{os.path.basename(file_path)}"
-    dest = config.DOCUMENTS_DIR / dest_name
-    shutil.copy2(file_path, dest)
+    try:
+        h = file_hash(file_path)
+        dest_name = f"{h[:12]}_{os.path.basename(file_path)}"
+        dest = config.DOCUMENTS_DIR / dest_name
+        shutil.copy2(file_path, dest)
+        logger.info("文件已复制到：%s", dest)
+    except Exception as e:
+        logger.error("文件复制失败：%s", str(e))
+        return None
 
     # 自动识别状态：优先使用传入的 status，否则从标题+文件名检测
     if not status:
         from utils.text_parser import detect_status_from_name
         fname = os.path.splitext(os.path.basename(file_path))[0]
         status = detect_status_from_name(title) or detect_status_from_name(fname) or "active"
+        logger.debug("自动识别文档状态：%s", status)
 
     # 提取文档正文
-    from utils.text_extractor import extract_text
-    content_text = extract_text(str(dest))
+    try:
+        from utils.text_extractor import extract_text
+        content_text = extract_text(str(dest))
+        logger.debug("提取文档正文，长度：%d", len(content_text) if content_text else 0)
+    except Exception as e:
+        logger.warning("提取文档正文失败：%s", str(e))
+        content_text = ""
 
     # 存储相对路径（相对于 DATA_DIR），方便打包分发后在其他电脑上使用
     try:
@@ -190,6 +205,7 @@ def upload_document(file_path: str, title: str, doc_no: str = "",
             content_text=content_text,
         )
         result = _to_dto(doc)
+        logger.info("文档已保存到数据库，ID：%d", result.id)
 
     # 写入 FTS5 索引（在 session 外执行，避免事务冲突）
     try:
@@ -211,12 +227,17 @@ def upload_document(file_path: str, title: str, doc_no: str = "",
 
 def batch_upload(file_paths: list, category_id: int = None, skip_duplicates: bool = True) -> dict:
     from utils.text_parser import extract_title_and_doc_no, detect_status_from_name
+    
+    logger.info("开始批量导入，文件数量：%d，跳过重复：%s", len(file_paths), skip_duplicates)
     result = {"success": 0, "failed": 0, "skipped": 0, "duplicates": []}
-    for fp in file_paths:
+    
+    for i, fp in enumerate(file_paths, 1):
         try:
             stem = os.path.splitext(os.path.basename(fp))[0]
             title, doc_no = extract_title_and_doc_no(stem)
             detected_status = detect_status_from_name(title) or detect_status_from_name(stem)
+            
+            logger.debug("处理文件 %d/%d：%s", i, len(file_paths), os.path.basename(fp))
             
             # 检查重复
             if skip_duplicates:
@@ -228,14 +249,23 @@ def batch_upload(file_paths: list, category_id: int = None, skip_duplicates: boo
                         "doc_no_dup": dup["doc_no_duplicate"]
                     })
                     result["skipped"] += 1
+                    logger.info("跳过重复文件：%s", os.path.basename(fp))
                     continue
             
             r = upload_document(fp, title=title, doc_no=doc_no,
                                 category_id=category_id, status=detected_status or None)
-            result["success" if r else "skipped"] += 1
+            if r:
+                result["success"] += 1
+                logger.info("成功导入：%s", title)
+            else:
+                result["skipped"] += 1
+                logger.warning("导入跳过：%s", os.path.basename(fp))
         except Exception as e:
-            logger.error(f"导入失败 {fp}: {e}")
+            logger.error("导入失败 %s：%s", fp, str(e), exc_info=True)
             result["failed"] += 1
+    
+    logger.info("批量导入完成，成功：%d，失败：%d，跳过：%d", 
+                result["success"], result["failed"], result["skipped"])
     return result
 
 
@@ -369,6 +399,13 @@ def batch_permanent_delete(doc_ids: List[int]) -> dict:
     files_to_delete = []
     failed = 0
     with get_session() as session:
+        # 预取全部 file_path，删除后用内存集合判断是否仍被引用（避免 O(N²)）
+        all_paths = session.query(Document.id, Document.file_path).filter(
+            Document.file_path != ""
+        ).all()
+        path_by_id = {row[0]: row[1] for row in all_paths if row[1]}
+        deleted_ids = set()
+
         for doc_id in doc_ids:
             try:
                 with session.begin_nested():
@@ -385,27 +422,30 @@ def batch_permanent_delete(doc_ids: List[int]) -> dict:
                     remove_from_index_in_session(session, doc_id)
                     session.flush()
 
+                    deleted_ids.add(doc_id)
                     # 兼容旧绝对路径和新相对路径，仅删除最后一个引用对应的文件。
                     if file_path:
-                        target_path = _normalized_path(file_path)
-                        remaining_paths = session.query(Document.file_path).filter(
-                            Document.file_path != ""
-                        ).all()
-                        still_referenced = any(
-                            _normalized_path(row[0]) == target_path
-                            for row in remaining_paths if row[0]
-                        )
-                        if not still_referenced:
-                            files_to_delete.append(_resolve_path(file_path))
+                        files_to_delete.append(file_path)
 
                     success_ids.append(doc_id)
             except Exception as e:
                 logger.error(f"批量永久删除失败 doc_id={doc_id}: {e}")
                 failed += 1
 
+    # 剩余引用判断：目标路径若仍被任一未删除文档引用则不删物理文件
+    target_norm = {}
+    for fp in files_to_delete:
+        target_norm[fp] = _normalized_path(fp)
+    remaining_norms = {
+        _normalized_path(path_by_id[i])
+        for i in path_by_id
+        if i not in deleted_ids
+    }
+
     # 数据库事务提交成功后再删除物理文件，避免删除失败导致记录仍在但文件丢失。
-    for file_path in set(files_to_delete):
-        _delete_file(file_path)
+    for file_path, norm in target_norm.items():
+        if norm not in remaining_norms:
+            _delete_file(_resolve_path(file_path))
 
     return {"success": len(success_ids), "failed": failed}
 

@@ -73,6 +73,60 @@ class DocumentServiceRegressionTests(unittest.TestCase):
                 session.add(DocumentTag(document_id=doc_id, tag_id=tag))
             return doc_id
 
+    def test_update_tags_decrements_old_usage_count(self):
+        """编辑标签：旧标签 usage_count 应扣减，新标签应 +1（同名重复只计一次）"""
+        with self.session() as session:
+            old_tag = Tag(name="旧标签", usage_count=1)
+            session.add(old_tag)
+            session.flush()
+            old_tag_id = old_tag.id
+        doc_id = self.create_document("标签制度", tag=old_tag_id)
+
+        document_service.update_document(doc_id, tags=["新标签", "新标签"])
+
+        with self.session() as session:
+            self.assertEqual(0, session.get(Tag, old_tag_id).usage_count)
+            new_tag = session.query(Tag).filter(Tag.name == "新标签").one()
+            self.assertEqual(1, new_tag.usage_count)
+
+    def test_batch_permanent_delete_shared_file_only_when_last_ref(self):
+        """共享文件仅在最后引用删除时移除物理文件（回归 O(N²) 重构）"""
+        file_path = self.data_dir / "documents" / "shared_del.pdf"
+        file_path.parent.mkdir(parents=True)
+        file_path.write_bytes(b"pdf")
+        id1 = self.create_document("共享1", file_path="documents/shared_del.pdf")
+        id2 = self.create_document("共享2", file_path="documents/shared_del.pdf")
+
+        r1 = document_service.batch_permanent_delete([id1])
+        self.assertEqual(1, r1["success"])
+        self.assertTrue(file_path.exists())
+
+        r2 = document_service.batch_permanent_delete([id2])
+        self.assertEqual(1, r2["success"])
+        self.assertFalse(file_path.exists())
+
+    def test_check_duplicate_returns_doc_no_duplicate(self):
+        """文号查重：已存在文号应返回 doc_no_duplicate"""
+        with self.session() as session:
+            doc = Document(
+                title="已有文号制度",
+                doc_no="银发〔2020〕1号",
+                file_path="documents/a.pdf",
+                original_name="a.pdf",
+                file_type="pdf",
+            )
+            session.add(doc)
+            session.flush()
+            from database.crud import DocumentCRUD
+            result = DocumentCRUD.check_duplicate(session, "其他文件.pdf", "银发〔2020〕1号")
+            self.assertIsNone(result["name_duplicate"])
+            self.assertIsNotNone(result["doc_no_duplicate"])
+            self.assertEqual(doc.id, result["doc_no_duplicate"]["id"])
+
+            result2 = DocumentCRUD.check_duplicate(session, "a.pdf", "银发〔2020〕999号")
+            self.assertIsNotNone(result2["name_duplicate"])
+            self.assertIsNone(result2["doc_no_duplicate"])
+
     def test_update_document_refreshes_fts_content(self):
         doc_id = self.create_document("旧标题")
         document_service._reindex_document(doc_id)

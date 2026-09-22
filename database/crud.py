@@ -125,17 +125,23 @@ class DocumentCRUD:
             if hasattr(doc, k):
                 setattr(doc, k, v)
         if tags is not None:
-            # 删除旧关联
+            # 删除旧关联，并同步扣减 usage_count
             old_assocs = session.query(DocumentTag).filter(
                 DocumentTag.document_id == doc_id
             ).all()
             for assoc in old_assocs:
+                if assoc.tag is not None and assoc.tag.usage_count > 0:
+                    assoc.tag.usage_count -= 1
                 session.delete(assoc)
-            # 创建新关联
+            # 创建新关联（同一标签在入参中只计一次，避免重复 +1）
+            seen_tag_ids = set()
             for tag_name in tags:
                 if not tag_name or not tag_name.strip():
                     continue
                 tag_obj = TagCRUD.get_or_create(session, tag_name.strip())
+                if tag_obj.id in seen_tag_ids:
+                    continue
+                seen_tag_ids.add(tag_obj.id)
                 tag_obj.usage_count += 1
                 session.add(DocumentTag(document_id=doc_id, tag_id=tag_obj.id))
         session.flush()
@@ -184,5 +190,15 @@ class DocumentCRUD:
                     "title": name_doc.title,
                     "original_name": name_doc.original_name
                 }
-        
+
+        # 检查文号重复
+        if doc_no:
+            no_doc = DocumentCRUD.find_by_doc_no(session, doc_no)
+            if no_doc:
+                result["doc_no_duplicate"] = {
+                    "id": no_doc.id,
+                    "title": no_doc.title,
+                    "doc_no": no_doc.doc_no
+                }
+
         return result

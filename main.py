@@ -28,14 +28,12 @@ import config
 
 
 def setup_logging():
-    """配置日志"""
-    logging.basicConfig(
+    """配置增强的日志系统"""
+    from utils.log_manager import LogManager
+    LogManager.setup_logging(
         level=logging.INFO,
-        format=config.LOG_FORMAT,
-        handlers=[
-            logging.FileHandler(config.LOG_FILE, encoding="utf-8"),
-            logging.StreamHandler(),
-        ]
+        max_bytes=10 * 1024 * 1024,  # 10MB
+        backup_count=10  # 保留10个备份文件
     )
 
 

@@ -8,9 +8,19 @@ INSTALL_DIR="${REGULATION_INSTALL_DIR:-/opt/RegulationManager}"
 DESKTOP_FILE="${REGULATION_DESKTOP_FILE:-/usr/share/applications/regulation-manager.desktop}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+wait_for_exit() {
+    echo ""
+    echo "按 Enter 关闭窗口..."
+    if [ -t 0 ]; then
+        read -r
+    else
+        sleep 30
+    fi
+}
+
 show_info() {
     if command -v zenity &>/dev/null && [ -n "${DISPLAY:-}" ]; then
-        zenity --info --title="$APP_NAME" --text="$1" --timeout=12
+        zenity --info --title="$APP_NAME" --text="$1" --timeout=30
     else
         echo "$1"
     fi
@@ -46,6 +56,7 @@ echo ""
 # 检查是否已安装
 if [ ! -d "$INSTALL_DIR" ]; then
     show_error "未找到已安装的程序目录 $INSTALL_DIR，可能尚未安装或已被移除。"
+    wait_for_exit
     exit 1
 fi
 
@@ -65,6 +76,7 @@ if [ "$EUID" -ne 0 ]; then
         exec sudo /usr/bin/env REGULATION_INSTALL_USER="$INSTALL_USER" "$SCRIPT_DIR/卸载程序.sh"
     else
         show_error "系统未提供图形授权工具 pkexec。请在本文件夹空白处右键，选择"在终端中打开"，然后输入 ./卸载程序.sh 并按 Enter。"
+        wait_for_exit
         exit 1
     fi
 fi
@@ -94,7 +106,4 @@ echo "  「$APP_NAME」已从系统中移除。"
 echo "=========================================="
 echo ""
 show_info "卸载完成！「$APP_NAME」已从系统中移除。"
-echo "提示：按 Enter 退出..."
-if [ -t 0 ]; then
-    read -r
-fi
+wait_for_exit

@@ -33,9 +33,19 @@ def create_backup(note: str = "") -> Path:
 
 
 def restore_backup(zip_path: str) -> bool:
-    """从 ZIP 恢复"""
+    """从 ZIP 恢复（拒绝 Zip Slip：成员路径必须落在 DATA_DIR 内）"""
     try:
+        target_root = config.DATA_DIR.resolve()
         with zipfile.ZipFile(zip_path, "r") as zf:
+            for info in zf.infolist():
+                name = info.filename
+                if not name or name.endswith("/"):
+                    continue
+                dest = (config.DATA_DIR / name).resolve()
+                # 拒绝绝对路径、盘符、以及 ../ 穿越到 DATA_DIR 之外
+                if dest != target_root and target_root not in dest.parents:
+                    logger.error(f"备份成员路径非法，已拒绝: {name}")
+                    return False
             zf.extractall(config.DATA_DIR)
         logger.info(f"备份已恢复: {zip_path}")
         return True

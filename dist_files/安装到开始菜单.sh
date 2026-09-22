@@ -8,9 +8,23 @@ INSTALL_DIR="${REGULATION_INSTALL_DIR:-/opt/RegulationManager}"
 DESKTOP_FILE="${REGULATION_DESKTOP_FILE:-/usr/share/applications/regulation-manager.desktop}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# ---- 等待用户确认再关闭终端窗口 ----
+# 双击 .sh 时，终端窗口在脚本退出后会立即关闭，
+# 导致用户看不到任何输出。统一在此处等待用户按 Enter。
+wait_for_exit() {
+    echo ""
+    echo "按 Enter 关闭窗口..."
+    if [ -t 0 ]; then
+        read -r
+    else
+        # 没有 tty（极少见），静默等待 30 秒后退出
+        sleep 30
+    fi
+}
+
 show_info() {
     if command -v zenity &>/dev/null && [ -n "${DISPLAY:-}" ]; then
-        zenity --info --title="$APP_NAME" --text="$1" --timeout=12
+        zenity --info --title="$APP_NAME" --text="$1" --timeout=30
     else
         echo "$1"
     fi
@@ -18,7 +32,7 @@ show_info() {
 
 show_error() {
     if command -v zenity &>/dev/null && [ -n "${DISPLAY:-}" ]; then
-        zenity --error --title="$APP_NAME" --text="$1"
+        zenity --error --title="$APP_NAME" --text="$1" --timeout=30
     else
         echo "错误：$1" >&2
     fi
@@ -39,6 +53,7 @@ if [ "$EUID" -ne 0 ]; then
         exec sudo /usr/bin/env REGULATION_INSTALL_USER="$INSTALL_USER" "$SCRIPT_DIR/安装到开始菜单.sh"
     else
         show_error "系统未提供图形授权工具 pkexec。请在本文件夹空白处右键，选择"在终端中打开"，然后输入 ./安装到开始菜单.sh 并按 Enter。"
+        wait_for_exit
         exit 1
     fi
 fi
@@ -54,6 +69,7 @@ fi
 if [ -z "$INSTALL_USER" ] || ! id "$INSTALL_USER" &>/dev/null; then
     echo "错误：无法确定使用该程序的普通用户。"
     echo "请指定用户后重新运行：REGULATION_INSTALL_USER=用户名 sudo -E ./安装到开始菜单.sh"
+    wait_for_exit
     exit 1
 fi
 
@@ -112,7 +128,4 @@ echo "  程序文件位于: $INSTALL_DIR/"
 echo "=========================================="
 echo ""
 show_info "安装完成！现在可以从开始菜单中打开「$APP_NAME」。"
-echo "提示：按 Enter 退出..."
-if [ -t 0 ]; then
-    read -r
-fi
+wait_for_exit

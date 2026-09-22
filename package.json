@@ -1,0 +1,17 @@
+{
+  "name": "regulationmanager",
+  "version": "1.0.0",
+  "description": "单机版制度文件集中管理工具，面向金融/企业合规部门，支持分类管理、全文搜索（含正文检索）、批量导入、回收站、央行评级打分卡等功能。支持 Windows 和银河麒麟操作系统。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

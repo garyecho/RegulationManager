@@ -265,6 +265,12 @@ class MainWindow(QMainWindow):
         act_init_db = QAction("初始化数据库（清空所有数据）", self)
         act_init_db.triggered.connect(self._on_init_database)
         tools_menu.addAction(act_init_db)
+        
+        act_log = QAction("查看系统日志(&L)", self)
+        act_log.setShortcut(QKeySequence("Ctrl+L"))
+        act_log.triggered.connect(self._on_view_logs)
+        tools_menu.addAction(act_log)
+        
         act_settings = QAction("系统设置(&S)", self)
         act_settings.triggered.connect(self._on_settings)
         tools_menu.addAction(act_settings)
@@ -1073,6 +1079,12 @@ class MainWindow(QMainWindow):
         current = get_theme()
         self._act_theme_light.setChecked(current == THEME_LIGHT)
         self._act_theme_dark.setChecked(current != THEME_LIGHT)
+
+    def _on_view_logs(self):
+        """查看系统日志"""
+        from ui.log_dialog import LogDialog
+        dlg = LogDialog(self)
+        dlg.exec()
 
     def _on_settings(self):
         """系统设置"""

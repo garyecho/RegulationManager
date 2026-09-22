@@ -42,6 +42,8 @@ DB_URL = f"sqlite:///{DB_PATH}"
 # ── 日志 ──
 LOG_FILE = LOG_DIR / f"app_{datetime.now():%Y%m%d}.log"
 LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+LOG_MAX_BYTES = 10 * 1024 * 1024  # 单个日志文件最大大小（10MB）
+LOG_BACKUP_COUNT = 10  # 保留的备份日志文件数量
 
 # ── 文件类型 ──
 ALLOWED_EXTENSIONS = {".doc", ".docx", ".pdf"}
