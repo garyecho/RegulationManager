@@ -40,10 +40,10 @@ DB_PATH = DATA_DIR / "regulation.db"
 DB_URL = f"sqlite:///{DB_PATH}"
 
 # ── 日志 ──
-LOG_FILE = LOG_DIR / f"app_{datetime.now():%Y%m%d}.log"
+# 活动日志固定名，由 TimedRotatingFileHandler 按天切分为 app.log.YYYY-MM-DD
+LOG_FILE = LOG_DIR / "app.log"
 LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-LOG_MAX_BYTES = 10 * 1024 * 1024  # 单个日志文件最大大小（10MB）
-LOG_BACKUP_COUNT = 10  # 保留的备份日志文件数量
+LOG_BACKUP_COUNT = 30  # 按天轮转，保留最近 30 个切分文件
 
 # ── 文件类型 ──
 ALLOWED_EXTENSIONS = {".doc", ".docx", ".pdf"}

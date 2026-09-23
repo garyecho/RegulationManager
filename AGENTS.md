@@ -76,7 +76,7 @@ resources/
   rating/               → 打分卡内置初始数据（两份 JSON，首启灌库）
 tests/                  → 单元测试（document_service, scorecard_service, citation_link）
 tools/                  → 开发期一次性脚本（xls → 打分卡 JSON，不随应用分发）
-dist_files/             → 打包交付文件（README.txt, 使用说明.txt, 启动/安装/卸载脚本）
+dist_files/             → 打包交付文件（README.txt, 使用说明.txt, 启动脚本）
 ```
 
 ## Data Flow

@@ -28,13 +28,9 @@ import config
 
 
 def setup_logging():
-    """配置增强的日志系统"""
+    """配置日志系统（轮转参数统一走 config）"""
     from utils.log_manager import LogManager
-    LogManager.setup_logging(
-        level=logging.INFO,
-        max_bytes=10 * 1024 * 1024,  # 10MB
-        backup_count=10  # 保留10个备份文件
-    )
+    LogManager.setup_logging(level=logging.INFO)
 
 
 def main():

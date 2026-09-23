@@ -76,16 +76,10 @@ cp dist_files/backup.txt "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || 
 cp dist_files/CHANGELOG.txt "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
 cp "dist_files/使用说明.txt" "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
 cp dist_files/start.sh "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
-cp dist_files/install.sh "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
 cp "dist_files/启动制度管理系统.sh" "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
-cp "dist_files/安装到开始菜单.sh" "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
-cp "dist_files/卸载程序.sh" "dist/RegulationManager_${ARCH_LABEL}/" 2>/dev/null || true
 
 chmod +x "dist/RegulationManager_${ARCH_LABEL}/start.sh"
-chmod +x "dist/RegulationManager_${ARCH_LABEL}/install.sh"
 chmod +x "dist/RegulationManager_${ARCH_LABEL}/启动制度管理系统.sh"
-chmod +x "dist/RegulationManager_${ARCH_LABEL}/安装到开始菜单.sh"
-chmod +x "dist/RegulationManager_${ARCH_LABEL}/卸载程序.sh"
 
 # Copy fcitx input method plugin for Chinese input on Kylin
 FCITX_PLUGIN=$(find /usr -name "libfcitxplatforminputcontextplugin.so" 2>/dev/null | head -1)

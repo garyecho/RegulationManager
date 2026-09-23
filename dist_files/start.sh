@@ -1,6 +1,6 @@
 #!/bin/bash
 # 制度汇编管理系统 — 图形界面启动脚本
-# 由 Launch_RegulationManager.desktop 和开始菜单快捷方式调用。
+# 由 Launch_RegulationManager.desktop 调用。
 
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_EXE="$APP_DIR/RegulationManager"
